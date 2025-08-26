@@ -180,8 +180,15 @@ export class JoinPrivateLobbyModal extends LitElement {
   }
 
   private async joinLobby(): Promise<void> {
-    const lobbyId = this.lobbyIdInput.value;
-    console.log(`Joining lobby with ID: ${lobbyId}`);
+    const lobbyId = this.lobbyIdInput.value.trim();
+    console.log(`Joining lobby with ID: "${lobbyId}" (length: ${lobbyId.length})`);
+    
+    if (!lobbyId) {
+      console.error("Empty lobby ID provided");
+      this.message = "Please enter a lobby ID";
+      return;
+    }
+    
     this.message = `${translateText("checking")}`;
 
     try {
@@ -216,11 +223,14 @@ export class JoinPrivateLobbyModal extends LitElement {
       this.message = translateText("waiting");
       this.hasJoined = true;
 
+      const clientID = generateID();
+      console.log(`Dispatching join-lobby event with gameID: "${lobbyId}", clientID: "${clientID}"`);
+
       this.dispatchEvent(
         new CustomEvent("join-lobby", {
           detail: {
             gameID: lobbyId,
-            clientID: generateID(),
+            clientID: clientID,
           } as JoinLobbyEvent,
           bubbles: true,
           composed: true,

@@ -729,18 +729,32 @@ export class HostLobbyModal extends LitElement {
 
   private async pollPlayers() {
     const config = await getServerConfigFromClient();
-    fetch(`/${config.workerPath(this.lobbyId)}/api/game/${this.lobbyId}`, {
+    const url = `/${config.workerPath(this.lobbyId)}/api/game/${this.lobbyId}`;
+    console.log(`Polling players for lobby ${this.lobbyId} at URL: ${url}`);
+    
+    fetch(url, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
     })
-      .then((response) => response.json())
+      .then((response) => {
+        console.log(`Poll response status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(GameInfoSchema.parse)
       .then((data: GameInfo) => {
         console.log(`got game info response: ${JSON.stringify(data)}`);
+        console.log(`Number of clients: ${data.clients?.length || 0}`);
 
         this.clients = data.clients ?? [];
+        this.requestUpdate(); // Force Lit to re-render
+      })
+      .catch((error) => {
+        console.error("Error polling players:", error);
       });
   }
 

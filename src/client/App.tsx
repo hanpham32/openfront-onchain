@@ -220,8 +220,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleJoinLobby = async (event: JoinLobbyEvent) => {
-    console.log(`joining lobby ${event.gameID}`);
+  const handleJoinLobby = async (eventOrData: CustomEvent<JoinLobbyEvent> | JoinLobbyEvent) => {
+    // Handle both CustomEvent (from modals) and direct JoinLobbyEvent (from PublicLobby)
+    const lobbyData = 'detail' in eventOrData ? eventOrData.detail : eventOrData;
+    
+    console.log(`handleJoinLobby called with:`, eventOrData);
+    console.log(`handleJoinLobby lobby data:`, lobbyData);
+    console.log(`joining lobby ${lobbyData.gameID}`);
 
     // Validate required fields before joining
     if (!username || username.trim() === "") {
@@ -230,8 +235,8 @@ const App: React.FC = () => {
       return;
     }
 
-    if (!event.gameID) {
-      console.error("Invalid game ID");
+    if (!lobbyData.gameID) {
+      console.error("Invalid game ID:", lobbyData.gameID);
       return;
     }
 
@@ -244,15 +249,15 @@ const App: React.FC = () => {
     const stopFunction = joinLobby(
       eventBus,
       {
-        gameID: event.gameID,
+        gameID: lobbyData.gameID,
         serverConfig: config,
         pattern: userSettings.getSelectedPattern(),
         flag: selectedFlag === "xx" ? undefined : selectedFlag,
         playerName: username.trim(),
         token: getPlayToken(),
-        clientID: event.clientID,
-        gameStartInfo: event.gameStartInfo ?? event.gameRecord?.info,
-        gameRecord: event.gameRecord,
+        clientID: lobbyData.clientID,
+        gameStartInfo: lobbyData.gameStartInfo ?? lobbyData.gameRecord?.info,
+        gameRecord: lobbyData.gameRecord,
       },
       () => {
         console.log("Closing modals");
@@ -269,8 +274,8 @@ const App: React.FC = () => {
           console.error("Error calling newPageView", e);
         }
 
-        if (event.gameStartInfo?.config.gameType !== GameType.Singleplayer) {
-          history.pushState(null, "", `#join=${event.gameID}`);
+        if (lobbyData.gameStartInfo?.config.gameType !== GameType.Singleplayer) {
+          history.pushState(null, "", `#join=${lobbyData.gameID}`);
         }
       },
     );
@@ -285,9 +290,10 @@ const App: React.FC = () => {
     setGameStop(null);
   };
 
-  const handleKickPlayer = (event: KickPlayerEvent) => {
+  const handleKickPlayer = (event: CustomEvent<KickPlayerEvent>) => {
+    const kickData = event.detail;
     if (eventBus) {
-      eventBus.emit(new SendKickPlayerIntentEvent(event.target));
+      eventBus.emit(new SendKickPlayerIntentEvent(kickData.target));
     }
   };
 
