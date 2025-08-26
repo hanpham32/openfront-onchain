@@ -1,28 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
-import { EventBus } from '../core/EventBus';
-import { UserMeResponse } from '../core/ApiSchemas';
-import { GameRecord, GameStartInfo, ID } from '../core/Schemas';
-import { ServerConfig } from '../core/configuration/Config';
-import { GameType } from '../core/game/Game';
-import { UserSettings } from '../core/game/UserSettings';
-import { getServerConfigFromClient } from '../core/configuration/ConfigLoader';
-import { joinLobby } from './ClientGameRunner';
-import { SendKickPlayerIntentEvent } from './Transport';
-import { generateCryptoRandomUUID, incrementGamesPlayed, translateText } from './Utils';
-import { discordLogin, getUserMe, isLoggedIn, logOut } from './jwt';
+import { UserMeResponse } from "../core/ApiSchemas";
+import { EventBus } from "../core/EventBus";
+import { GameRecord, GameStartInfo, ID } from "../core/Schemas";
+import { ServerConfig } from "../core/configuration/Config";
+import { getServerConfigFromClient } from "../core/configuration/ConfigLoader";
+import { GameType } from "../core/game/Game";
+import { UserSettings } from "../core/game/UserSettings";
+import { joinLobby } from "./ClientGameRunner";
+import { SendKickPlayerIntentEvent } from "./Transport";
+import {
+  generateCryptoRandomUUID,
+  incrementGamesPlayed,
+  translateText,
+} from "./Utils";
+import { discordLogin, getUserMe, isLoggedIn, logOut } from "./jwt";
 
-import Button from './components/Button';
-import DarkModeButton from './components/DarkModeButton';
-import FlagInput from './components/FlagInput';
-import LangSelector from './components/LangSelector';
+import Button from "./components/Button";
+import DarkModeButton from "./components/DarkModeButton";
+import FlagInput from "./components/FlagInput";
+import LangSelector from "./components/LangSelector";
 // NewsButton temporarily commented out due to import issues
 // import NewsButton from './components/NewsButton';
-import PublicLobby from './components/PublicLobby';
-import UsernameInput from './components/UsernameInput';
-import version from '../../resources/version.txt';
+import version from "../../resources/version.txt";
+import PublicLobby from "./components/PublicLobby";
+import UsernameInput from "./components/UsernameInput";
 
-import './styles.css';
+import "./styles.css";
 
 export type JoinLobbyEvent = {
   clientID: string;
@@ -58,27 +62,31 @@ declare global {
 
 const App: React.FC = () => {
   const [gameStop, setGameStop] = useState<(() => void) | null>(null);
-  const [userMeResponse, setUserMeResponse] = useState<UserMeResponse | false>(false);
+  const [userMeResponse, setUserMeResponse] = useState<UserMeResponse | false>(
+    false,
+  );
   const [isLoggedInState, setIsLoggedInState] = useState(false);
-  const [username, setUsername] = useState('Player');
-  const [selectedFlag, setSelectedFlag] = useState('xx');
-  const [selectedPattern, setSelectedPattern] = useState('');
+  const [username, setUsername] = useState("Player");
+  const [selectedFlag, setSelectedFlag] = useState("xx");
+  const [selectedPattern, setSelectedPattern] = useState("");
   const [isUsernameValid, setIsUsernameValid] = useState(true);
 
   const eventBus = new EventBus();
   const userSettings = new UserSettings();
 
   useEffect(() => {
-    const gameVersionEl = document.getElementById('game-version') as HTMLDivElement;
+    const gameVersionEl = document.getElementById(
+      "game-version",
+    ) as HTMLDivElement;
     if (gameVersionEl) {
       gameVersionEl.innerText = version;
     }
 
     // Set up dark mode
     if (userSettings.darkMode()) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
 
     // Handle authentication
@@ -99,24 +107,24 @@ const App: React.FC = () => {
       handleHash();
     };
 
-    window.addEventListener('popstate', handleHashChange);
-    window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener("popstate", handleHashChange);
+    window.addEventListener("hashchange", handleHashChange);
+    window.addEventListener("beforeunload", () => {
       if (gameStop !== null) {
         gameStop();
       }
     });
 
     return () => {
-      window.removeEventListener('popstate', handleHashChange);
-      window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('beforeunload', handleHashChange);
+      window.removeEventListener("popstate", handleHashChange);
+      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("beforeunload", handleHashChange);
     };
   }, []);
 
   const onUserMe = async (response: UserMeResponse | false) => {
     const config = await getServerConfigFromClient();
-    
+
     if (!hasAllowedFlare(response, config)) {
       if (response === false) {
         // Login required
@@ -124,8 +132,8 @@ const App: React.FC = () => {
         document.body.innerHTML = `
           <div style="display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; background-size: cover; background-position: center;">
             <div style="background-color: rgba(0, 0, 0, 0.7); color: white; padding: 2em; margin: 5em; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);">
-              <p style="margin-bottom: 1em;">${translateText('auth.login_required')}</p>
-              <p style="margin-bottom: 1.5em;">${translateText('auth.redirecting')}</p>
+              <p style="margin-bottom: 1em;">${translateText("auth.login_required")}</p>
+              <p style="margin-bottom: 1.5em;">${translateText("auth.redirecting")}</p>
               <div style="width: 100%; height: 8px; background-color: #444; border-radius: 4px; overflow: hidden;">
                 <div style="height: 100%; width: 0%; background-color: #4caf50; animation: fillBar 5s linear forwards;"></div>
               </div>
@@ -146,8 +154,8 @@ const App: React.FC = () => {
         document.body.innerHTML = `
           <div style="display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; background-size: cover; background-position: center;">
             <div style="background-color: rgba(0, 0, 0, 0.7); color: white; padding: 2em; margin: 5em; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);">
-              <p style="margin-bottom: 1em;">${translateText('auth.not_authorized')}</p>
-              <p>${translateText('auth.contact_admin')}</p>
+              <p style="margin-bottom: 1em;">${translateText("auth.not_authorized")}</p>
+              <p>${translateText("auth.contact_admin")}</p>
             </div>
           </div>
           <div class="bg-image"></div>
@@ -165,19 +173,23 @@ const App: React.FC = () => {
 
     const alertAndStrip = (message: string) => {
       alert(message);
-      history.replaceState(null, '', window.location.pathname + window.location.search);
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
     };
 
-    if (hash.startsWith('#')) {
+    if (hash.startsWith("#")) {
       const params = new URLSearchParams(hash.slice(1));
-      if (params.get('purchase-completed') === 'true') {
-        alertAndStrip('purchase succeeded');
+      if (params.get("purchase-completed") === "true") {
+        alertAndStrip("purchase succeeded");
         return;
-      } else if (params.get('purchase-completed') === 'false') {
-        alertAndStrip('purchase failed');
+      } else if (params.get("purchase-completed") === "false") {
+        alertAndStrip("purchase failed");
         return;
       }
-      const lobbyId = params.get('join');
+      const lobbyId = params.get("join");
       if (lobbyId && ID.safeParse(lobbyId).success) {
         // Handle join lobby logic here
         console.log(`joining lobby ${lobbyId}`);
@@ -187,21 +199,21 @@ const App: React.FC = () => {
 
   const handleJoinLobby = async (event: JoinLobbyEvent) => {
     console.log(`joining lobby ${event.gameID}`);
-    
+
     // Validate required fields before joining
-    if (!username || username.trim() === '') {
-      console.error('Username is required to join a lobby');
-      alert('Please enter a username before joining a lobby.');
+    if (!username || username.trim() === "") {
+      console.error("Username is required to join a lobby");
+      alert("Please enter a username before joining a lobby.");
       return;
     }
-    
+
     if (!event.gameID) {
-      console.error('Invalid game ID');
+      console.error("Invalid game ID");
       return;
     }
-    
+
     if (gameStop !== null) {
-      console.log('joining lobby, stopping existing game');
+      console.log("joining lobby, stopping existing game");
       gameStop();
     }
     const config = await getServerConfigFromClient();
@@ -212,7 +224,7 @@ const App: React.FC = () => {
         gameID: event.gameID,
         serverConfig: config,
         pattern: userSettings.getSelectedPattern(),
-        flag: selectedFlag === 'xx' ? undefined : selectedFlag,
+        flag: selectedFlag === "xx" ? undefined : selectedFlag,
         playerName: username.trim(),
         token: getPlayToken(),
         clientID: event.clientID,
@@ -220,30 +232,32 @@ const App: React.FC = () => {
         gameRecord: event.gameRecord,
       },
       () => {
-        console.log('Closing modals');
-        document.getElementById('settings-button')?.classList.add('hidden');
-        document.getElementById('username-validation-error')?.classList.add('hidden');
+        console.log("Closing modals");
+        document.getElementById("settings-button")?.classList.add("hidden");
+        document
+          .getElementById("username-validation-error")
+          ?.classList.add("hidden");
       },
       () => {
         incrementGamesPlayed();
         try {
           window.PageOS.session.newPageView();
         } catch (e) {
-          console.error('Error calling newPageView', e);
+          console.error("Error calling newPageView", e);
         }
-        
+
         if (event.gameStartInfo?.config.gameType !== GameType.Singleplayer) {
-          history.pushState(null, '', `#join=${event.gameID}`);
+          history.pushState(null, "", `#join=${event.gameID}`);
         }
-      }
+      },
     );
-    
+
     setGameStop(() => stopFunction);
   };
 
   const handleLeaveLobby = () => {
     if (gameStop === null) return;
-    console.log('leaving lobby, cancelling game');
+    console.log("leaving lobby, cancelling game");
     gameStop();
     setGameStop(null);
   };
@@ -283,22 +297,25 @@ const App: React.FC = () => {
                 x2="100%"
                 y2="0%"
               >
-                <stop offset="0%" style={{ stopColor: '#2563eb' }} />
-                <stop offset="100%" style={{ stopColor: '#3b82f6' }} />
+                <stop offset="0%" style={{ stopColor: "#2563eb" }} />
+                <stop offset="100%" style={{ stopColor: "#3b82f6" }} />
               </linearGradient>
             </defs>
             <g>
               <path d="M0,174V51h15.24v-17.14h16.81v-16.98h16.96V0h1266v17.23h17.13v16.81h16.98v16.96h14.88v123h-15.13v17.08h-17.08v17.08h-16.9v17.04H324.9v16.86h-16.9v16.95h-102v-17.12h-17.07v-17.05H48.73v-17.05h-16.89v-16.89H14.94v-16.89H0ZM1297.95,17.35H65.9v16.7h-17.08v17.08h-14.5v123.08h14.85v16.9h17.08v17.08h139.9v17.08h17.08v16.36h67.9v-16.72h17.08v-17.07h989.88v-17.07h17.08v-16.9h14.44V50.8h-14.75v-17.08h-16.9v-16.37Z" />
             </g>
           </svg>
-          <div id="game-version" className="l-header__highlightText text-center">
+          <div
+            id="game-version"
+            className="l-header__highlightText text-center"
+          >
             Loading version...
           </div>
         </div>
       </header>
-      
+
       <div className="bg-image"></div>
-      
+
       <main className="flex justify-center flex-grow">
         <div className="container pt-12">
           {!isLoggedInState ? (
@@ -334,12 +351,7 @@ const App: React.FC = () => {
             />
             {/* <NewsButton className="w-[20%] md:w-[15%] component-hideable" /> */}
             <div className="w-[20%] md:w-[15%] component-hideable">
-              <Button
-                title="News"
-                onClick={() => {}}
-                secondary
-                block
-              />
+              <Button title="News" onClick={() => {}} secondary block />
             </div>
           </div>
 
@@ -350,7 +362,7 @@ const App: React.FC = () => {
           <div className="container__row container__row--equal">
             <Button
               title="Create Lobby"
-              translationKey="main.create_lobby"
+              translationKey="create lobby"
               onClick={() => {
                 if (isUsernameValid) {
                   // Handle host lobby
@@ -361,7 +373,7 @@ const App: React.FC = () => {
             />
             <Button
               title="Join Lobby"
-              translationKey="main.join_lobby"
+              translationKey="join lobby"
               onClick={() => {
                 if (isUsernameValid) {
                   // Handle join private lobby
@@ -375,7 +387,7 @@ const App: React.FC = () => {
           <Button
             id="single-player"
             title="Single Player"
-            translationKey="main.single_player"
+            translationKey="single player"
             onClick={() => {
               if (isUsernameValid) {
                 // Handle single player
@@ -386,14 +398,14 @@ const App: React.FC = () => {
 
           <Button
             title="Instructions"
-            translationKey="main.instructions"
+            translationKey="instructions"
             onClick={() => {
               // Handle help modal
             }}
             block
             secondary
           />
-          
+
           <div className="container__row">
             <LangSelector className="w-full" />
           </div>
@@ -404,7 +416,7 @@ const App: React.FC = () => {
         id="settings-button"
         title="Settings"
         className="fixed bottom-4 right-4 z-50 rounded-full p-2 shadow-lg transition-colors duration-300 flex items-center justify-center"
-        style={{ width: '80px', height: '80px', backgroundColor: '#0075ff' }}
+        style={{ width: "80px", height: "80px", backgroundColor: "#0075ff" }}
         onClick={() => {
           // Handle settings modal
         }}
@@ -412,7 +424,7 @@ const App: React.FC = () => {
         <img
           src="../../resources/images/SettingIconWhite.svg"
           alt="Settings"
-          style={{ width: '72px', height: '72px' }}
+          style={{ width: "72px", height: "72px" }}
         />
       </button>
 
@@ -476,7 +488,7 @@ const App: React.FC = () => {
             >
               Terms of Service
             </a>
-            <p style={{ textAlign: 'center' }}>
+            <p style={{ textAlign: "center" }}>
               <a
                 href="https://www.playwire.com/contact-direct-sales"
                 data-i18n="main.advertise"
@@ -510,11 +522,11 @@ export function getPersistentID(): string {
 
 // WARNING: DO NOT EXPOSE THIS ID
 function getPersistentIDFromCookie(): string {
-  const COOKIE_NAME = 'player_persistent_id';
+  const COOKIE_NAME = "player_persistent_id";
 
-  const cookies = document.cookie.split(';');
+  const cookies = document.cookie.split(";");
   for (const cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.split('=').map((c) => c.trim());
+    const [cookieName, cookieValue] = cookie.split("=").map((c) => c.trim());
     if (cookieName === COOKIE_NAME) {
       return cookieValue;
     }
@@ -524,17 +536,17 @@ function getPersistentIDFromCookie(): string {
   document.cookie = [
     `${COOKIE_NAME}=${newID}`,
     `max-age=${5 * 365 * 24 * 60 * 60}`,
-    'path=/',
-    'SameSite=Strict',
-    'Secure',
-  ].join(';');
+    "path=/",
+    "SameSite=Strict",
+    "Secure",
+  ].join(";");
 
   return newID;
 }
 
 function hasAllowedFlare(
   userMeResponse: UserMeResponse | false,
-  config: ServerConfig
+  config: ServerConfig,
 ) {
   const allowed = config.allowedFlares();
   if (allowed === undefined) return true;
