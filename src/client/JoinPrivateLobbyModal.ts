@@ -213,7 +213,7 @@ export class JoinPrivateLobbyModal extends LitElement {
     const gameInfo = WorkerApiGameIdExistsSchema.parse(json);
 
     if (gameInfo.exists) {
-      this.message = translateText("joined_waiting");
+      this.message = translateText("waiting");
       this.hasJoined = true;
 
       this.dispatchEvent(
