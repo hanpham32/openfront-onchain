@@ -1,5 +1,5 @@
 import { usePrivy } from "@privy-io/react-auth";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 import { UserMeResponse } from "../core/ApiSchemas";
 import { EventBus } from "../core/EventBus";
@@ -25,6 +25,8 @@ import LangSelector from "./components/LangSelector";
 import version from "../../resources/version.txt";
 import PublicLobby from "./components/PublicLobby";
 import UsernameInput from "./components/UsernameInput";
+import HostLobbyModal from "./components/HostLobbyModal";
+import JoinPrivateLobbyModal from "./components/JoinPrivateLobbyModal";
 
 import "./styles.css";
 
@@ -70,6 +72,12 @@ const App: React.FC = () => {
   const [selectedFlag, setSelectedFlag] = useState("xx");
   const [selectedPattern, setSelectedPattern] = useState("");
   const [isUsernameValid, setIsUsernameValid] = useState(true);
+  const [isHostLobbyOpen, setIsHostLobbyOpen] = useState(false);
+  const [isJoinLobbyOpen, setIsJoinLobbyOpen] = useState(false);
+  
+  // Refs for the converted components
+  const usernameInputRef = useRef<{ getCurrentUsername: () => string; isValid: () => boolean }>(null);
+  const publicLobbyRef = useRef<{ stop: () => void; leaveLobby: () => void }>(null);
 
   const eventBus = new EventBus();
   const userSettings = new UserSettings();
@@ -92,17 +100,7 @@ const App: React.FC = () => {
     // Handle hash-based navigation
     handleHash();
 
-    // Set up lobby modal event listeners
-    const hostModal = document.querySelector("host-lobby-modal") as any;
-    if (hostModal) {
-      hostModal.addEventListener("join-lobby", handleJoinLobby);
-      hostModal.addEventListener("kick-player", handleKickPlayer);
-    }
-
-    const joinModal = document.querySelector("join-private-lobby-modal") as any;
-    if (joinModal) {
-      joinModal.addEventListener("join-lobby", handleJoinLobby);
-    }
+    // Modal event listeners are now handled directly through React props
 
     // Event listeners
     const handleHashChange = () => {
@@ -125,14 +123,7 @@ const App: React.FC = () => {
       window.removeEventListener("hashchange", handleHashChange);
       window.removeEventListener("beforeunload", handleHashChange);
       
-      // Clean up lobby modal event listeners
-      if (hostModal) {
-        hostModal.removeEventListener("join-lobby", handleJoinLobby);
-        hostModal.removeEventListener("kick-player", handleKickPlayer);
-      }
-      if (joinModal) {
-        joinModal.removeEventListener("join-lobby", handleJoinLobby);
-      }
+      // Modal cleanup is now handled by React
     };
   }, []);
 
@@ -297,6 +288,18 @@ const App: React.FC = () => {
     }
   };
 
+  // Handle kick player event from React components
+  const handleKickPlayerReact = (event: { target: string }) => {
+    if (eventBus) {
+      eventBus.emit(new SendKickPlayerIntentEvent(event.target));
+    }
+  };
+
+  // Handle join lobby event from React components  
+  const handleJoinLobbyReact = (event: { clientID: string; gameID: string; gameStartInfo?: any; gameRecord?: any }) => {
+    handleJoinLobby({ detail: event } as any);
+  };
+
   const handleLogin = () => {
     login();
   };
@@ -312,18 +315,10 @@ const App: React.FC = () => {
       return;
     }
 
-    const hostModal = document.querySelector("host-lobby-modal") as any;
-    if (hostModal && typeof hostModal.open === "function") {
-      // Leave any current public lobby
-      const publicLobbyElement = document.querySelector("public-lobby") as any;
-      if (publicLobbyElement && typeof publicLobbyElement.leaveLobby === "function") {
-        publicLobbyElement.leaveLobby();
-      }
-      
-      hostModal.open();
-    } else {
-      console.error("Host lobby modal not found or does not have open method");
-    }
+    // Leave any current public lobby
+    publicLobbyRef.current?.leaveLobby();
+    
+    setIsHostLobbyOpen(true);
   };
 
   const handleJoinPrivateLobby = () => {
@@ -332,18 +327,10 @@ const App: React.FC = () => {
       return;
     }
 
-    const joinModal = document.querySelector("join-private-lobby-modal") as any;
-    if (joinModal && typeof joinModal.open === "function") {
-      // Leave any current public lobby
-      const publicLobbyElement = document.querySelector("public-lobby") as any;
-      if (publicLobbyElement && typeof publicLobbyElement.leaveLobby === "function") {
-        publicLobbyElement.leaveLobby();
-      }
-      
-      joinModal.open();
-    } else {
-      console.error("Join private lobby modal not found or does not have open method");
-    }
+    // Leave any current public lobby
+    publicLobbyRef.current?.leaveLobby();
+    
+    setIsJoinLobbyOpen(true);
   };
 
   return (
@@ -420,6 +407,7 @@ const App: React.FC = () => {
               {/* Territory patterns modal will go here */}
             </div>
             <UsernameInput
+              ref={usernameInputRef}
               className="relative w-full"
               value={username}
               onChange={setUsername}
@@ -432,7 +420,10 @@ const App: React.FC = () => {
           </div>
 
           <div>
-            <PublicLobby onJoinLobby={handleJoinLobby} />
+            <PublicLobby 
+              ref={publicLobbyRef}
+              onJoinLobby={handleJoinLobbyReact} 
+            />
           </div>
 
           <div className="container__row container__row--equal">
@@ -497,6 +488,20 @@ const App: React.FC = () => {
       </button>
 
       <DarkModeButton />
+
+      {/* React Modals */}
+      <HostLobbyModal
+        isOpen={isHostLobbyOpen}
+        onClose={() => setIsHostLobbyOpen(false)}
+        onJoinLobby={handleJoinLobbyReact}
+        onKickPlayer={handleKickPlayerReact}
+      />
+
+      <JoinPrivateLobbyModal
+        isOpen={isJoinLobbyOpen}
+        onClose={() => setIsJoinLobbyOpen(false)}
+        onJoinLobby={handleJoinLobbyReact}
+      />
 
       <footer className="l-footer">
         <div className="l-footer__content">

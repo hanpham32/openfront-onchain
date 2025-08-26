@@ -1,107 +1,140 @@
-import React, { useState, useEffect } from 'react';
-
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
 import {
   MAX_USERNAME_LENGTH,
   validateUsername,
 } from '../../core/validations/username';
 import { UserSettings } from '../../core/game/UserSettings';
 import { translateText } from '../Utils';
+import { v4 as uuidv4 } from 'uuid';
+
+const usernameKey = 'username';
 
 interface UsernameInputProps {
-  value: string;
-  onChange: (value: string) => void;
+  value?: string;
+  onChange?: (value: string) => void;
   onValidationChange?: (isValid: boolean) => void;
   className?: string;
 }
 
-const UsernameInput: React.FC<UsernameInputProps> = ({
+interface UsernameInputRef {
+  getCurrentUsername: () => string;
+  isValid: () => boolean;
+}
+
+const UsernameInput = forwardRef<UsernameInputRef, UsernameInputProps>(({
   value,
   onChange,
   onValidationChange,
   className = '',
-}) => {
+}, ref) => {
+  const [username, setUsername] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [isValidState, setIsValidState] = useState(true);
   const userSettings = new UserSettings();
 
-  useEffect(() => {
-    // Load stored username on mount
-    const storedUsername = getStoredUsername();
-    if (storedUsername && !value) {
-      onChange(storedUsername);
-    }
+  const generateNewUsername = useCallback((): string => {
+    const uuidToThreeDigits = (): string => {
+      const uuid = uuidv4();
+      const cleanUuid = uuid.replace(/-/g, '').toLowerCase();
+      const decimal = BigInt(`0x${cleanUuid}`);
+      const threeDigits = decimal % 1000n;
+      return threeDigits.toString().padStart(3, '0');
+    };
+
+    const newUsername = 'Anon' + uuidToThreeDigits();
+    storeUsername(newUsername);
+    return newUsername;
   }, []);
 
-  useEffect(() => {
-    // Validate username whenever it changes
-    const validation = validateUsername(value);
-    const isValid = validation.isValid;
-    
-    if (!isValid && value.length > 0) {
-      setValidationError(validation.error ?? 'Invalid username');
-    } else {
-      setValidationError('');
+  const getStoredUsername = useCallback((): string => {
+    const storedUsername = localStorage.getItem(usernameKey);
+    if (storedUsername) {
+      return storedUsername;
     }
-    
-    onValidationChange?.(isValid);
-    
-    // Store username
-    if (isValid && value) {
-      localStorage.setItem('username', value);
-      dispatchUsernameEvent(value);
-    }
-  }, [value, onValidationChange]);
+    return generateNewUsername();
+  }, [generateNewUsername]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
+  const storeUsername = (usernameToStore: string) => {
+    if (usernameToStore) {
+      localStorage.setItem(usernameKey, usernameToStore);
+    }
   };
 
-  const getStoredUsername = (): string => {
-    const stored = localStorage.getItem('username');
-    if (stored) return stored;
-
-    // Generate random username
-    const adjectives = ['Swift', 'Brave', 'Mighty', 'Noble', 'Fierce'];
-    const nouns = ['Warrior', 'Knight', 'Champion', 'Hero', 'Guardian'];
-    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-    const randomNum = Math.floor(Math.random() * 1000);
-    return `${randomAdjective}${randomNoun}${randomNum}`;
-  };
-
-  const dispatchUsernameEvent = (username: string) => {
-    const event = new CustomEvent('username-changed', {
-      detail: { username },
+  const dispatchUsernameEvent = useCallback((usernameValue: string) => {
+    const event = new CustomEvent('username-change', {
+      detail: { username: usernameValue },
+      bubbles: true,
+      composed: true,
     });
     document.dispatchEvent(event);
+  }, []);
+
+  // Initialize username on mount
+  useEffect(() => {
+    const initialUsername = value || getStoredUsername();
+    setUsername(initialUsername);
+    dispatchUsernameEvent(initialUsername);
+  }, []);
+
+  // Update username when value prop changes
+  useEffect(() => {
+    if (value !== undefined) {
+      setUsername(value);
+    }
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUsername = e.target.value.trim();
+    setUsername(newUsername);
+    
+    const result = validateUsername(newUsername);
+    setIsValidState(result.isValid);
+    
+    if (result.isValid) {
+      storeUsername(newUsername);
+      setValidationError('');
+      onChange?.(newUsername);
+      onValidationChange?.(true);
+      dispatchUsernameEvent(newUsername);
+    } else {
+      setValidationError(result.error ?? '');
+      onValidationChange?.(false);
+    }
   };
 
-  const isValid = (): boolean => {
-    return validateUsername(value).isValid;
-  };
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    getCurrentUsername: () => username,
+    isValid: () => isValidState,
+  }), [username, isValidState]);
 
   return (
-    <div className={className}>
+    <div className={`relative ${className}`}>
       <input
         type="text"
-        value={value}
+        value={username}
         onChange={handleChange}
         placeholder={translateText('username.enter_username')}
         maxLength={MAX_USERNAME_LENGTH}
         className="w-full px-4 py-2 border border-gray-300 rounded-xl shadow-sm
-        text-2xl text-center focus:outline-none focus:ring-2
-        focus:ring-blue-500 focus:border-blue-500 dark:border-gray-300/60
-        dark:bg-gray-700 dark:text-white"
+          text-2xl text-center focus:outline-none focus:ring-2
+          focus:ring-blue-500 focus:border-blue-500 dark:border-gray-300/60
+          dark:bg-gray-700 dark:text-white"
       />
       {validationError && (
         <div
           id="username-validation-error"
-          className="text-red-500 text-sm mt-1 text-center"
+          className="absolute z-10 w-full mt-2 px-3 py-1 text-lg border rounded
+            bg-white text-red-600 border-red-600 dark:bg-gray-700
+            dark:text-red-300 dark:border-red-300"
         >
           {validationError}
         </div>
       )}
     </div>
   );
-};
+});
+
+UsernameInput.displayName = 'UsernameInput';
 
 export default UsernameInput;

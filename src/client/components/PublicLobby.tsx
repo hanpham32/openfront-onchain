@@ -1,114 +1,219 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { GameID, GameInfo } from '../../core/Schemas';
+import { GameMapType, GameMode } from '../../core/game/Game';
+import { ApiPublicLobbiesResponseSchema } from '../../core/ExpressSchemas';
+import { generateID } from '../../core/Util';
+import { terrainMapFileLoader } from '../TerrainMapFileLoader';
+import { translateText } from '../Utils';
 
-import { GameInfo } from '../../core/Schemas';
-import { JoinLobbyEvent } from '../App';
+export interface JoinLobbyEvent {
+  clientID: string;
+  gameID: string;
+}
 
-import Button from './Button';
+export interface LeaveLobbyEvent {
+  lobby: GameInfo;
+}
 
 interface PublicLobbyProps {
   onJoinLobby: (event: JoinLobbyEvent) => void;
+  onLeaveLobby?: (event: LeaveLobbyEvent) => void;
 }
 
-const PublicLobby: React.FC<PublicLobbyProps> = ({ onJoinLobby }) => {
+interface PublicLobbyRef {
+  stop: () => void;
+  leaveLobby: () => void;
+}
+
+const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(({ onJoinLobby, onLeaveLobby }, ref) => {
   const [lobbies, setLobbies] = useState<GameInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedLobby, setSelectedLobby] = useState<string | null>(null);
+  const [isLobbyHighlighted, setIsLobbyHighlighted] = useState(false);
+  const [isButtonDebounced, setIsButtonDebounced] = useState(false);
+  const [mapImages, setMapImages] = useState<Map<GameID, string>>(new Map());
+  const [lobbyIDToStart] = useState<Map<GameID, number>>(new Map());
+  const [currLobby, setCurrLobby] = useState<GameInfo | null>(null);
 
-  useEffect(() => {
-    fetchPublicLobbies();
-    const interval = setInterval(fetchPublicLobbies, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
-  }, []);
+  const debounceDelay = 750;
 
-  const fetchPublicLobbies = async () => {
+  const loadMapImage = async (gameID: GameID, gameMap: string) => {
     try {
-      const response = await fetch('/api/public_lobbies');
-      if (response.ok) {
-        const data = await response.json() as { lobbies?: GameInfo[] };
-        setLobbies(data.lobbies ?? []);
-      }
+      const mapType = gameMap as GameMapType;
+      const data = terrainMapFileLoader.getMapData(mapType);
+      const imagePath = await data.webpPath();
+      
+      setMapImages(prev => new Map(prev).set(gameID, imagePath));
     } catch (error) {
-      console.error('Failed to fetch public lobbies:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to load map image:', error);
     }
   };
 
-  const handleJoinLobby = (gameID: string) => {
-    onJoinLobby({
-      clientID: generateClientId(),
-      gameID: gameID,
-    });
+  const fetchAndUpdateLobbies = useCallback(async (): Promise<void> => {
+    try {
+      const newLobbies = await fetchLobbies();
+      setLobbies(newLobbies);
+      
+      newLobbies.forEach((lobby) => {
+        // Store the start time on first fetch because endpoint is cached
+        if (!lobbyIDToStart.has(lobby.gameID)) {
+          const msUntilStart = lobby.msUntilStart ?? 0;
+          lobbyIDToStart.set(lobby.gameID, msUntilStart + Date.now());
+        }
+
+        // Load map image if not already loaded
+        if (lobby.gameConfig && !mapImages.has(lobby.gameID)) {
+          loadMapImage(lobby.gameID, lobby.gameConfig.gameMap);
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching lobbies:', error);
+    }
+  }, [lobbyIDToStart, mapImages]);
+
+  const fetchLobbies = async (): Promise<GameInfo[]> => {
+    try {
+      const response = await fetch('/api/public_lobbies');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const json = await response.json();
+      const data = ApiPublicLobbiesResponseSchema.parse(json);
+      return data.lobbies;
+    } catch (error) {
+      console.error('Error fetching lobbies:', error);
+      throw error;
+    }
   };
 
-  const generateClientId = (): string => {
-    return Math.random().toString(36).substr(2, 8);
+  // Set up polling interval
+  useEffect(() => {
+    fetchAndUpdateLobbies();
+    const interval = setInterval(() => fetchAndUpdateLobbies(), 1000);
+    return () => clearInterval(interval);
+  }, [fetchAndUpdateLobbies]);
+
+  const stop = useCallback(() => {
+    setIsLobbyHighlighted(false);
+  }, []);
+
+  const leaveLobby = useCallback(() => {
+    setIsLobbyHighlighted(false);
+    setCurrLobby(null);
+  }, []);
+
+  const lobbyClicked = (lobby: GameInfo) => {
+    if (isButtonDebounced) {
+      return;
+    }
+
+    // Set debounce state
+    setIsButtonDebounced(true);
+    setTimeout(() => {
+      setIsButtonDebounced(false);
+    }, debounceDelay);
+
+    if (currLobby === null) {
+      setIsLobbyHighlighted(true);
+      setCurrLobby(lobby);
+      onJoinLobby({
+        gameID: lobby.gameID,
+        clientID: generateID(),
+      });
+    } else {
+      onLeaveLobby?.({ lobby: currLobby });
+      leaveLobby();
+    }
   };
 
-  const stop = () => {
-    // Stop any ongoing operations
-  };
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    stop,
+    leaveLobby,
+  }), [stop, leaveLobby]);
 
-  const leaveLobby = () => {
-    setSelectedLobby(null);
-  };
+  // Return nothing if no lobbies (matches original Lit component)
+  if (lobbies.length === 0) return null;
 
-  if (isLoading) {
-    return (
-      <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 mb-4">
-        <div className="text-center">Loading public lobbies...</div>
-      </div>
-    );
+  const lobby = lobbies[0];
+  if (!lobby?.gameConfig) {
+    return null;
   }
 
-  if (lobbies.length === 0) {
-    return (
-      <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-semibold mb-3 text-center">Public Lobbies</h3>
-        <div className="text-center text-gray-600 dark:text-gray-400">
-          No public lobbies available
-        </div>
-      </div>
-    );
-  }
+  const start = lobbyIDToStart.get(lobby.gameID) ?? 0;
+  const timeRemaining = Math.max(0, Math.floor((start - Date.now()) / 1000));
+
+  // Format time to show minutes and seconds
+  const minutes = Math.floor(timeRemaining / 60);
+  const seconds = timeRemaining % 60;
+  const timeDisplay = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+  const teamCount = lobby.gameConfig.gameMode === GameMode.Team
+    ? (lobby.gameConfig.playerTeams ?? 0)
+    : null;
+
+  const mapImageSrc = mapImages.get(lobby.gameID);
 
   return (
-    <div className="bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 mb-4">
-      <h3 className="text-lg font-semibold mb-3 text-center">Public Lobbies</h3>
-      <div className="space-y-2">
-        {lobbies.map((lobby) => (
-          <div
-            key={lobby.gameID}
-            className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-              selectedLobby === lobby.gameID
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-            }`}
-          >
-            <div className="flex-1">
-              <div className="font-medium">{lobby.gameID}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {lobby.gameConfig?.gameMode ?? 'Unknown'} • {lobby.numClients ?? 0}/{lobby.gameConfig?.maxPlayers ?? 'N/A'} players
-              </div>
-            </div>
-            <Button
-              title="Join"
-              onClick={() => handleJoinLobby(lobby.gameID)}
-              secondary
-              disabled={(lobby.numClients ?? 0) >= (lobby.gameConfig?.maxPlayers ?? 0)}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 text-center">
-        <Button
-          title="Refresh"
-          onClick={fetchPublicLobbies}
-          secondary
+    <button
+      onClick={() => lobbyClicked(lobby)}
+      disabled={isButtonDebounced}
+      className={`isolate grid h-40 grid-cols-[100%] grid-rows-[100%] place-content-stretch w-full overflow-hidden ${
+        isLobbyHighlighted
+          ? 'bg-gradient-to-r from-green-600 to-green-500'
+          : 'bg-gradient-to-r from-blue-600 to-blue-500'
+      } text-white font-medium rounded-xl transition-opacity duration-200 hover:opacity-90 ${
+        isButtonDebounced
+          ? 'opacity-70 cursor-not-allowed'
+          : ''
+      }`}
+    >
+      {mapImageSrc ? (
+        <img
+          src={mapImageSrc}
+          alt={lobby.gameConfig.gameMap}
+          className="place-self-start col-span-full row-span-full h-full -z-10"
+          style={{ maskImage: 'linear-gradient(to left, transparent, #fff)' }}
         />
+      ) : (
+        <div className="place-self-start col-span-full row-span-full h-full -z-10 bg-gray-300" />
+      )}
+      <div className="flex flex-col justify-between h-full col-span-full row-span-full p-4 md:p-6 text-right z-0">
+        <div>
+          <div className="text-lg md:text-2xl font-semibold">
+            {translateText('public_lobby.join')}
+          </div>
+          <div className="text-md font-medium text-blue-100">
+            <span
+              className={`text-sm ${
+                isLobbyHighlighted
+                  ? 'text-green-600'
+                  : 'text-blue-600'
+              } bg-white rounded-sm px-1`}
+            >
+              {lobby.gameConfig.gameMode === GameMode.Team
+                ? typeof teamCount === 'string'
+                  ? translateText(`public_lobby.teams_${teamCount}`)
+                  : translateText('public_lobby.teams', { num: teamCount ?? 0 })
+                : translateText('game_mode.ffa')}
+            </span>
+            <span>
+              {translateText(
+                `map.${lobby.gameConfig.gameMap.toLowerCase().replace(/\s+/g, '')}`,
+              )}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-md font-medium text-blue-100">
+            {lobby.numClients} / {lobby.gameConfig.maxPlayers}
+          </div>
+          <div className="text-md font-medium text-blue-100">{timeDisplay}</div>
+        </div>
       </div>
-    </div>
+    </button>
   );
-};
+});
+
+PublicLobby.displayName = 'PublicLobby';
 
 export default PublicLobby;
