@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>OpenFront (ALPHA)</title>
+    <link rel="manifest" href="../../resources/manifest.json" />
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="../../resources/images/Favicon.svg"
+    />
+
+    <!-- SEO -->
+    <link rel="canonical" href="https://openfront.io/" />
+    <meta
+      name="description"
+      content="Conquer the world in this multiplayer battle royale! Expand your nation, eliminate opponents, and dominate the map in this fast-paced IO game."
+    />
+
+    <!-- Open Graph -->
+    <meta property="og:url" content="https://openfront.io/" />
+    <meta property="og:title" content="OpenFront - Battle Royale" />
+    <meta
+      property="og:description"
+      content="Conquer the world in this multiplayer battle royale! Expand your nation, eliminate opponents, and dominate the map in this fast-paced IO game."
+    />
+    <meta
+      property="og:image"
+      content="https://openfront.io/resources/images/GameplayScreenshot.png"
+    />
+    <meta property="og:type" content="game" />
+
+    <!-- Critical CSS to prevent FOUC -->
+    <style>
+      .preload * {
+        -webkit-transition: none !important;
+        -moz-transition: none !important;
+        -ms-transition: none !important;
+        -o-transition: none !important;
+        transition: none !important;
+      }
+
+      html {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      html.preload {
+        visibility: hidden;
+        opacity: 0;
+      }
+
+      .bg-image {
+        content: "";
+        background-image: url("/images/EuropeBackground.webp");
+        background-position: center;
+        background-attachment: fixed;
+        background-size: cover;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        filter: blur(4px);
+        z-index: -1;
+      }
+
+      .dark .bg-image {
+        filter: blur(4px) brightness(0.4) saturate(0.3) contrast(1.2);
+      }
+
+      /* display:none if child has class parent-hidden since we can't use shadow DOM in Lit due to Tailwind */
+      .component-hideable:has(> .parent-hidden) {
+        display: none;
+      }
+    </style>
+
+    <!-- Immediate execution to prevent FOUC -->
+    <script>
+      document.documentElement.className = "preload";
+    </script>
+
+    <!-- Playwire ads -->
+    <script>
+      window.ramp = window.ramp || {};
+      window.ramp.que = window.ramp.que || [];
+      window.ramp.passiveMode = true;
+    </script>
+
+    <!-- Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=AW-16702609763"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+
+      gtag("js", new Date());
+      gtag("config", "AW-16702609763");
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-WQGQQ8RDN4"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-WQGQQ8RDN4");
+    </script>
+  </head>
+
+  <body
+    class="h-full select-none font-sans min-h-screen bg-opacity-0 bg-cover bg-center bg-fixed transition-opacity duration-300 ease-in-out flex flex-col"
+  >
+    <!-- React root element -->
+    <div id="root"></div>
+
+    <!-- Game components that are not converted to React yet -->
+    <div id="customMenu" class="mt-4 sm:mt-6 lg:mt-8">
+      <ul></ul>
+    </div>
+    <div id="app"></div>
+    <div id="radialMenu" class="radial-menu"></div>
+    <div class="flex gap-2 fixed right-[10px] top-[10px] z-50 flex-col">
+      <options-menu></options-menu>
+      <player-info-overlay></player-info-overlay>
+    </div>
+    <div
+      class="fixed bottom-[30px] sm:bottom-auto sm:top-[20px] z-50 mx-auto max-w-max inset-x-0 items-center"
+    >
+      <heads-up-message></heads-up-message>
+    </div>
+
+    <div
+      class="bottom-0 w-full flex-col-reverse sm:flex-row z-50 md:w-[320px]"
+      style="position: fixed; pointer-events: none"
+    >
+      <div
+        class="w-full md:w-2/3 md:fixed sm:right-0 md:bottom-0 md:flex flex-col items-end"
+        style="pointer-events: none"
+      >
+        <chat-display></chat-display>
+        <events-display></events-display>
+      </div>
+      <div style="pointer-events: auto">
+        <control-panel></control-panel>
+      </div>
+    </div>
+
+    <!-- Game modals and overlays that are not converted to React yet -->
+    <single-player-modal></single-player-modal>
+    <host-lobby-modal></host-lobby-modal>
+    <join-private-lobby-modal></join-private-lobby-modal>
+    <emoji-table></emoji-table>
+    <build-menu></build-menu>
+    <win-modal></win-modal>
+    <game-starting-modal></game-starting-modal>
+    <game-top-bar></game-top-bar>
+    <unit-display></unit-display>
+    <div class="flex fixed top-[20px] right-[20px] z-[1000] items-start gap-2">
+      <replay-panel></replay-panel>
+      <game-right-sidebar></game-right-sidebar>
+    </div>
+    <settings-modal></settings-modal>
+    <player-panel></player-panel>
+    <help-modal></help-modal>
+    <alert-frame></alert-frame>
+    <chat-modal></chat-modal>
+    <user-setting></user-setting>
+    <multi-tab-modal></multi-tab-modal>
+    <news-modal></news-modal>
+    <game-left-sidebar></game-left-sidebar>
+    <spawn-ad></spawn-ad>
+    <gutter-ad-modal></gutter-ad-modal>
+    <flag-input-modal></flag-input-modal>
+    <fps-display></fps-display>
+    
+    <!-- Playwire ads -->
+    <script async src="//cdn.intergient.com/1025558/75940/ramp.js"></script>
+
+    <!-- Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "03d93e6fefb349c28ee69b408fa25a13"}'
+    ></script>
+  </body>
+</html>
