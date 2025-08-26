@@ -276,7 +276,7 @@ export class HostLobbyModal extends LitElement {
                 @click=${() => this.handleGameModeSelection(GameMode.FFA)}
               >
                 <div class="option-card-title">
-                  ${translateText("game_mode.ffa")}
+                  ${translateText("ffa")}
                 </div>
               </div>
               <div
@@ -284,7 +284,7 @@ export class HostLobbyModal extends LitElement {
                 @click=${() => this.handleGameModeSelection(GameMode.Team)}
               >
                 <div class="option-card-title">
-                  ${translateText("game_mode.teams")}
+                  ${translateText("teams")}
                 </div>
               </div>
             </div>

@@ -184,14 +184,14 @@ export class Leaderboard extends LitElement implements Layer {
               #
             </div>
             <div class="py-1 md:py-2 text-center border-b border-slate-500">
-              ${translateText("leaderboard.player")}
+              ${translateText("player")}
             </div>
             <div
               class="py-1 md:py-2 text-center border-b border-slate-500 cursor-pointer 
                 whitespace-nowrap overflow-hidden"
               @click=${() => this.setSort("tiles")}
             >
-              <span class="block text-xs">${translateText("leaderboard.owned")}</span>
+              <span class="block text-xs">${translateText("owned")}</span>
               ${this._sortKey === "tiles"
                 ? this._sortOrder === "asc"
                   ? "⬆️"
@@ -203,7 +203,7 @@ export class Leaderboard extends LitElement implements Layer {
                 whitespace-nowrap overflow-hidden"
               @click=${() => this.setSort("gold")}
             >
-              <span class="block text-xs">${translateText("leaderboard.gold")}</span>
+              <span class="block text-xs">${translateText("gold")}</span>
               ${this._sortKey === "gold"
                 ? this._sortOrder === "asc"
                   ? "⬆️"
@@ -215,7 +215,7 @@ export class Leaderboard extends LitElement implements Layer {
                 whitespace-nowrap overflow-hidden"
               @click=${() => this.setSort("troops")}
             >
-              <span class="block text-xs">${translateText("leaderboard.troops")}</span>
+              <span class="block text-xs">${translateText("troops")}</span>
               ${this._sortKey === "troops"
                 ? this._sortOrder === "asc"
                   ? "⬆️"

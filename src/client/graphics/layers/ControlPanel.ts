@@ -193,7 +193,7 @@ export class ControlPanel extends LitElement implements Layer {
 
         <div class="relative mb-0 sm:mb-4">
           <label class="block text-white mb-1" translate="no"
-            >${translateText("control_panel.attack_ratio")}:
+            >${translateText("attack_ratio")}:
             ${(this.attackRatio * 100).toFixed(0)}%
             (${renderTroops(
               (this.game?.myPlayer()?.troops() ?? 0) * this.attackRatio,
