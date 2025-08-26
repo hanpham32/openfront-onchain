@@ -329,7 +329,7 @@ const App: React.FC = () => {
             />
           ) : !authenticated ? (
             <Button
-              title="Connect your wallet"
+              title="connect your wallet"
               onClick={handleLogin}
               block
               disabled={false}
@@ -337,7 +337,7 @@ const App: React.FC = () => {
           ) : (
             <Button
               title="Log out"
-              translationKey="main.log_out"
+              translationKey="disconnect your wallet"
               onClick={handleLogout}
               block
             />
