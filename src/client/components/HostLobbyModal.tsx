@@ -21,6 +21,7 @@ import { UserSettings } from "../../core/game/UserSettings";
 import { translateText } from "../Utils";
 // import { renderUnitTypeOptions } from '../utilities/RenderUnitTypeOptions';
 // import randomMap from '../../../resources/images/RandomMap.webp';
+import { FaStar } from "react-icons/fa";
 import Modal from "./Modal";
 
 export interface JoinLobbyEvent {
@@ -537,31 +538,26 @@ export const HostLobbyModal: React.FC<HostLobbyModalProps> = ({
 
           <div className="players-list">
             {clients.map((client) => (
-              <span key={client.clientID} className="player-tag">
-                {client.username}
-                {client.clientID === lobbyCreatorClientID ? (
-                  <span className="host-badge">
-                    <svg
-                      className="host-icon"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      style={{ marginLeft: "8px", color: "#ffd700" }}
+                <span key={client.clientID} className="player-tag">
+                  {client.username}
+                  {client.clientID === lobbyCreatorClientID ? (
+                    <span className="host-badge">
+                      <FaStar
+                        className="host-icon"
+                        size={16}
+                        style={{ marginLeft: "8px", color: "#ffd700" }}
+                      />
+                    </span>
+                  ) : (
+                    <button
+                      className="remove-player-btn"
+                      onClick={() => kickPlayer(client.clientID)}
+                      title={`Remove ${client.username}`}
                     >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </span>
-                ) : (
-                  <button
-                    className="remove-player-btn"
-                    onClick={() => kickPlayer(client.clientID)}
-                    title={`Remove ${client.username}`}
-                  >
-                    ×
-                  </button>
-                )}
-              </span>
+                      ×
+                    </button>
+                  )}
+                </span>
             ))}
           </div>
 

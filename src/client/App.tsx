@@ -1,5 +1,5 @@
 import { usePrivy } from "@privy-io/react-auth";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { UserMeResponse } from "../core/ApiSchemas";
 import { EventBus } from "../core/EventBus";
@@ -23,10 +23,10 @@ import LangSelector from "./components/LangSelector";
 // NewsButton temporarily commented out due to import issues
 // import NewsButton from './components/NewsButton';
 import version from "../../resources/version.txt";
-import PublicLobby from "./components/PublicLobby";
-import UsernameInput from "./components/UsernameInput";
 import HostLobbyModal from "./components/HostLobbyModal";
 import JoinPrivateLobbyModal from "./components/JoinPrivateLobbyModal";
+import PublicLobby from "./components/PublicLobby";
+import UsernameInput from "./components/UsernameInput";
 
 import "./styles.css";
 
@@ -74,10 +74,15 @@ const App: React.FC = () => {
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isHostLobbyOpen, setIsHostLobbyOpen] = useState(false);
   const [isJoinLobbyOpen, setIsJoinLobbyOpen] = useState(false);
-  
+
   // Refs for the converted components
-  const usernameInputRef = useRef<{ getCurrentUsername: () => string; isValid: () => boolean }>(null);
-  const publicLobbyRef = useRef<{ stop: () => void; leaveLobby: () => void }>(null);
+  const usernameInputRef = useRef<{
+    getCurrentUsername: () => string;
+    isValid: () => boolean;
+  }>(null);
+  const publicLobbyRef = useRef<{ stop: () => void; leaveLobby: () => void }>(
+    null,
+  );
 
   const eventBus = new EventBus();
   const userSettings = new UserSettings();
@@ -122,7 +127,7 @@ const App: React.FC = () => {
       window.removeEventListener("popstate", handleHashChange);
       window.removeEventListener("hashchange", handleHashChange);
       window.removeEventListener("beforeunload", handleHashChange);
-      
+
       // Modal cleanup is now handled by React
     };
   }, []);
@@ -211,10 +216,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleJoinLobby = async (eventOrData: CustomEvent<JoinLobbyEvent> | JoinLobbyEvent) => {
+  const handleJoinLobby = async (
+    eventOrData: CustomEvent<JoinLobbyEvent> | JoinLobbyEvent,
+  ) => {
     // Handle both CustomEvent (from modals) and direct JoinLobbyEvent (from PublicLobby)
-    const lobbyData = 'detail' in eventOrData ? eventOrData.detail : eventOrData;
-    
+    const lobbyData =
+      "detail" in eventOrData ? eventOrData.detail : eventOrData;
+
     console.log(`handleJoinLobby called with:`, eventOrData);
     console.log(`handleJoinLobby lobby data:`, lobbyData);
     console.log(`joining lobby ${lobbyData.gameID}`);
@@ -265,7 +273,9 @@ const App: React.FC = () => {
           console.error("Error calling newPageView", e);
         }
 
-        if (lobbyData.gameStartInfo?.config.gameType !== GameType.Singleplayer) {
+        if (
+          lobbyData.gameStartInfo?.config.gameType !== GameType.Singleplayer
+        ) {
           history.pushState(null, "", `#join=${lobbyData.gameID}`);
         }
       },
@@ -295,8 +305,13 @@ const App: React.FC = () => {
     }
   };
 
-  // Handle join lobby event from React components  
-  const handleJoinLobbyReact = (event: { clientID: string; gameID: string; gameStartInfo?: any; gameRecord?: any }) => {
+  // Handle join lobby event from React components
+  const handleJoinLobbyReact = (event: {
+    clientID: string;
+    gameID: string;
+    gameStartInfo?: any;
+    gameRecord?: any;
+  }) => {
     handleJoinLobby({ detail: event } as any);
   };
 
@@ -317,7 +332,7 @@ const App: React.FC = () => {
 
     // Leave any current public lobby
     publicLobbyRef.current?.leaveLobby();
-    
+
     setIsHostLobbyOpen(true);
   };
 
@@ -329,7 +344,7 @@ const App: React.FC = () => {
 
     // Leave any current public lobby
     publicLobbyRef.current?.leaveLobby();
-    
+
     setIsJoinLobbyOpen(true);
   };
 
@@ -420,23 +435,23 @@ const App: React.FC = () => {
           </div>
 
           <div>
-            <PublicLobby 
+            <PublicLobby
               ref={publicLobbyRef}
-              onJoinLobby={handleJoinLobbyReact} 
+              onJoinLobby={handleJoinLobbyReact}
             />
           </div>
 
           <div className="container__row container__row--equal">
             <Button
               title="Create Lobby"
-              translationKey="create lobby"
+              translationKey="Create lobby"
               onClick={handleCreateLobby}
               block
               secondary
             />
             <Button
               title="Join Lobby"
-              translationKey="join lobby"
+              translationKey="Join lobby"
               onClick={handleJoinPrivateLobby}
               block
               secondary
@@ -449,7 +464,7 @@ const App: React.FC = () => {
             translationKey="single player"
             onClick={() => {
               if (isUsernameValid) {
-                // Handle single player
+                // TODO: Handle single player
               }
             }}
             block
@@ -459,7 +474,7 @@ const App: React.FC = () => {
             title="Instructions"
             translationKey="instructions"
             onClick={() => {
-              // Handle help modal
+              // TODO: Handle help modal
             }}
             block
             secondary
@@ -477,7 +492,7 @@ const App: React.FC = () => {
         className="fixed bottom-4 right-4 z-50 rounded-full p-2 shadow-lg transition-colors duration-300 flex items-center justify-center"
         style={{ width: "80px", height: "80px", backgroundColor: "#0075ff" }}
         onClick={() => {
-          // Handle settings modal
+          // TODO: Handle settings modal
         }}
       >
         <img
