@@ -79,7 +79,7 @@ export class HostLobbyModal extends LitElement {
 
   render() {
     return html`
-      <o-modal title=${translateText("host_modal.title")}>
+      <o-modal title=${translateText("title")}>
         <div class="lobby-id-box">
           <button class="lobby-id-button">
             <!-- Visibility toggle icon on the left -->
@@ -269,7 +269,7 @@ export class HostLobbyModal extends LitElement {
 
           <!-- Game Mode Selection -->
           <div class="options-section">
-            <div class="option-title">${translateText("host_modal.mode")}</div>
+            <div class="option-title">${translateText("mode")}</div>
             <div class="option-cards">
               <div
                 class="option-card ${this.gameMode === GameMode.FFA ? "selected" : ""}"
@@ -297,7 +297,7 @@ export class HostLobbyModal extends LitElement {
                   <!-- Team Count Selection -->
                   <div class="options-section">
                     <div class="option-title">
-                      ${translateText("host_modal.team_count")}
+                      ${translateText("team_count")}
                     </div>
                     <div class="option-cards">
                       ${[2, 3, 4, 5, 6, 7, Quads, Trios, Duos].map(
@@ -326,7 +326,7 @@ export class HostLobbyModal extends LitElement {
           <!-- Game Options -->
           <div class="options-section">
             <div class="option-title">
-              ${translateText("host_modal.options_title")}
+              ${translateText("options_title")}
             </div>
             <div class="option-cards">
               <label for="bots-count" class="option-card">
@@ -341,9 +341,9 @@ export class HostLobbyModal extends LitElement {
                   .value="${String(this.bots)}"
                 />
                 <div class="option-card-title">
-                  <span>${translateText("host_modal.bots")}</span>${
+                  <span>${translateText("bots")}</span>${
                     this.bots === 0
-                      ? translateText("host_modal.bots_disabled")
+                      ? translateText("bots_disabled")
                       : this.bots
                   }
                 </div>
@@ -361,7 +361,7 @@ export class HostLobbyModal extends LitElement {
                     .checked=${this.disableNPCs}
                   />
                   <div class="option-card-title">
-                    ${translateText("host_modal.disable_nations")}
+                    ${translateText("disable_nations")}
                   </div>
                 </label>
 
@@ -377,7 +377,7 @@ export class HostLobbyModal extends LitElement {
                     .checked=${this.instantBuild}
                   />
                   <div class="option-card-title">
-                    ${translateText("host_modal.instant_build")}
+                    ${translateText("instant_build")}
                   </div>
                 </label>
 
@@ -393,7 +393,7 @@ export class HostLobbyModal extends LitElement {
                     .checked=${this.donateGold}
                   />
                   <div class="option-card-title">
-                    ${translateText("host_modal.donate_gold")}
+                    ${translateText("donate_gold")}
                   </div>
                 </label>
 
@@ -409,7 +409,7 @@ export class HostLobbyModal extends LitElement {
                     .checked=${this.donateTroops}
                   />
                   <div class="option-card-title">
-                    ${translateText("host_modal.donate_troops")}
+                    ${translateText("donate_troops")}
                   </div>
                 </label>
 
@@ -425,7 +425,7 @@ export class HostLobbyModal extends LitElement {
                     .checked=${this.infiniteGold}
                   />
                   <div class="option-card-title">
-                    ${translateText("host_modal.infinite_gold")}
+                    ${translateText("infinite_gold")}
                   </div>
                 </label>
 
@@ -441,7 +441,7 @@ export class HostLobbyModal extends LitElement {
                     .checked=${this.infiniteTroops}
                   />
                   <div class="option-card-title">
-                    ${translateText("host_modal.infinite_troops")}
+                    ${translateText("infinite_troops")}
                   </div>
                 </label>
 
@@ -451,7 +451,7 @@ export class HostLobbyModal extends LitElement {
                 <div
                   style="margin: 8px 0 12px 0; font-weight: bold; color: #ccc; text-align: center;"
                 >
-                  ${translateText("host_modal.enables_title")}
+                  ${translateText("enables_title")}
                 </div>
                 <div
                   style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;"
@@ -472,8 +472,8 @@ export class HostLobbyModal extends LitElement {
             ${this.clients.length}
             ${
               this.clients.length === 1
-                ? translateText("host_modal.player")
-                : translateText("host_modal.players")
+                ? translateText("player")
+                : translateText("players")
             }
           </div>
 
@@ -484,7 +484,7 @@ export class HostLobbyModal extends LitElement {
                   ${client.username}
                   ${client.clientID === this.lobbyCreatorClientID
                     ? html`<span class="host-badge"
-                        >(${translateText("host_modal.host_badge")})</span
+                        >(${translateText("host_badge")})</span
                       >`
                     : html`
                         <button
@@ -508,8 +508,8 @@ export class HostLobbyModal extends LitElement {
           >
             ${
               this.clients.length === 1
-                ? translateText("host_modal.waiting")
-                : translateText("host_modal.start")
+                ? translateText("waiting")
+                : translateText("start")
             }
           </button>
         </div>

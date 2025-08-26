@@ -92,6 +92,18 @@ const App: React.FC = () => {
     // Handle hash-based navigation
     handleHash();
 
+    // Set up lobby modal event listeners
+    const hostModal = document.querySelector("host-lobby-modal") as any;
+    if (hostModal) {
+      hostModal.addEventListener("join-lobby", handleJoinLobby);
+      hostModal.addEventListener("kick-player", handleKickPlayer);
+    }
+
+    const joinModal = document.querySelector("join-private-lobby-modal") as any;
+    if (joinModal) {
+      joinModal.addEventListener("join-lobby", handleJoinLobby);
+    }
+
     // Event listeners
     const handleHashChange = () => {
       if (gameStop !== null) {
@@ -112,6 +124,15 @@ const App: React.FC = () => {
       window.removeEventListener("popstate", handleHashChange);
       window.removeEventListener("hashchange", handleHashChange);
       window.removeEventListener("beforeunload", handleHashChange);
+      
+      // Clean up lobby modal event listeners
+      if (hostModal) {
+        hostModal.removeEventListener("join-lobby", handleJoinLobby);
+        hostModal.removeEventListener("kick-player", handleKickPlayer);
+      }
+      if (joinModal) {
+        joinModal.removeEventListener("join-lobby", handleJoinLobby);
+      }
     };
   }, []);
 
@@ -279,6 +300,46 @@ const App: React.FC = () => {
     setUserMeResponse(false);
   };
 
+  const handleCreateLobby = () => {
+    if (!isUsernameValid) {
+      alert("Please enter a valid username before creating a lobby.");
+      return;
+    }
+
+    const hostModal = document.querySelector("host-lobby-modal") as any;
+    if (hostModal && typeof hostModal.open === "function") {
+      // Leave any current public lobby
+      const publicLobbyElement = document.querySelector("public-lobby") as any;
+      if (publicLobbyElement && typeof publicLobbyElement.leaveLobby === "function") {
+        publicLobbyElement.leaveLobby();
+      }
+      
+      hostModal.open();
+    } else {
+      console.error("Host lobby modal not found or does not have open method");
+    }
+  };
+
+  const handleJoinPrivateLobby = () => {
+    if (!isUsernameValid) {
+      alert("Please enter a valid username before joining a lobby.");
+      return;
+    }
+
+    const joinModal = document.querySelector("join-private-lobby-modal") as any;
+    if (joinModal && typeof joinModal.open === "function") {
+      // Leave any current public lobby
+      const publicLobbyElement = document.querySelector("public-lobby") as any;
+      if (publicLobbyElement && typeof publicLobbyElement.leaveLobby === "function") {
+        publicLobbyElement.leaveLobby();
+      }
+      
+      joinModal.open();
+    } else {
+      console.error("Join private lobby modal not found or does not have open method");
+    }
+  };
+
   return (
     <>
       <header className="l-header">
@@ -372,22 +433,14 @@ const App: React.FC = () => {
             <Button
               title="Create Lobby"
               translationKey="create lobby"
-              onClick={() => {
-                if (isUsernameValid) {
-                  // Handle host lobby
-                }
-              }}
+              onClick={handleCreateLobby}
               block
               secondary
             />
             <Button
               title="Join Lobby"
               translationKey="join lobby"
-              onClick={() => {
-                if (isUsernameValid) {
-                  // Handle join private lobby
-                }
-              }}
+              onClick={handleJoinPrivateLobby}
               block
               secondary
             />

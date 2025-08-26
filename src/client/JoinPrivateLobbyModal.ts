@@ -44,12 +44,12 @@ export class JoinPrivateLobbyModal extends LitElement {
 
   render() {
     return html`
-      <o-modal title=${translateText("private_lobby.title")}>
+      <o-modal title=${translateText("title")}>
         <div class="lobby-id-box">
           <input
             type="text"
             id="lobbyIdInput"
-            placeholder=${translateText("private_lobby.enter_id")}
+            placeholder=${translateText("enter_id")}
             @keyup=${this.handleChange}
           />
           <button
@@ -87,8 +87,8 @@ export class JoinPrivateLobbyModal extends LitElement {
                 <div class="option-title">
                   ${this.players.length}
                   ${this.players.length === 1
-                    ? translateText("private_lobby.player")
-                    : translateText("private_lobby.players")}
+                    ? translateText("player")
+                    : translateText("players")}
                 </div>
 
                 <div class="players-list">
@@ -102,7 +102,7 @@ export class JoinPrivateLobbyModal extends LitElement {
         <div class="flex justify-center">
           ${!this.hasJoined
             ? html` <o-button
-                title=${translateText("private_lobby.join_lobby")}
+                title=${translateText("join_lobby")}
                 block
                 @click=${this.joinLobby}
               ></o-button>`
@@ -182,7 +182,7 @@ export class JoinPrivateLobbyModal extends LitElement {
   private async joinLobby(): Promise<void> {
     const lobbyId = this.lobbyIdInput.value;
     console.log(`Joining lobby with ID: ${lobbyId}`);
-    this.message = `${translateText("private_lobby.checking")}`;
+    this.message = `${translateText("checking")}`;
 
     try {
       // First, check if the game exists in active lobbies
@@ -193,10 +193,10 @@ export class JoinPrivateLobbyModal extends LitElement {
       const archivedGame = await this.checkArchivedGame(lobbyId);
       if (archivedGame) return;
 
-      this.message = `${translateText("private_lobby.not_found")}`;
+      this.message = `${translateText("not_found")}`;
     } catch (error) {
       console.error("Error checking lobby existence:", error);
-      this.message = `${translateText("private_lobby.error")}`;
+      this.message = `${translateText("error")}`;
     }
   }
 
@@ -213,7 +213,7 @@ export class JoinPrivateLobbyModal extends LitElement {
     const gameInfo = WorkerApiGameIdExistsSchema.parse(json);
 
     if (gameInfo.exists) {
-      this.message = translateText("private_lobby.joined_waiting");
+      this.message = translateText("joined_waiting");
       this.hasJoined = true;
 
       this.dispatchEvent(
