@@ -170,7 +170,7 @@ export class ControlPanel extends LitElement implements Layer {
         <div class="block bg-black/30 text-white mb-4 p-2 rounded">
           <div class="flex justify-between mb-1">
             <span class="font-bold"
-              >${translateText("control_panel.troops")}:</span
+              >${translateText("troops")}:</span
             >
             <span translate="no"
               >${renderTroops(this._troops)} / ${renderTroops(this._maxTroops)}
@@ -185,7 +185,7 @@ export class ControlPanel extends LitElement implements Layer {
           </div>
           <div class="flex justify-between">
             <span class="font-bold"
-              >${translateText("control_panel.gold")}:</span
+              >${translateText("gold")}:</span
             >
             <span translate="no">${renderNumber(this._gold)}</span>
           </div>

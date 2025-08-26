@@ -37,6 +37,12 @@ importers:
       "@opentelemetry/winston-transport":
         specifier: ^0.11.0
         version: 0.11.0
+      "@types/react":
+        specifier: ^19.1.11
+        version: 19.1.11
+      "@types/react-dom":
+        specifier: ^19.1.7
+        version: 19.1.7(@types/react@19.1.11)
       colord:
         specifier: ^2.9.3
         version: 2.9.3
@@ -76,6 +82,12 @@ importers:
       obscenity:
         specifier: ^0.4.3
         version: 0.4.4
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.1.1(react@19.1.1)
       seedrandom:
         specifier: ^3.0.5
         version: 3.0.5
@@ -174,7 +186,7 @@ importers:
         specifier: ^8.5.11
         version: 8.18.1
       autoprefixer:
-        specifier: ^10.4.20
+        specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.6)
       benchmark:
         specifier: ^2.1.4
@@ -264,7 +276,7 @@ importers:
         specifier: ^8.11.0
         version: 8.12.0
       postcss:
-        specifier: ^8.5.1
+        specifier: ^8.5.6
         version: 8.5.6
       postcss-loader:
         specifier: ^8.1.1
@@ -3553,6 +3565,20 @@ packages:
         integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==,
       }
 
+  "@types/react-dom@19.1.7":
+    resolution:
+      {
+        integrity: sha512-i5ZzwYpqjmrKenzkoLM2Ibzt6mAsM7pxB6BCIouEVVmgiqaMj1TjaK7hnA36hbW5aZv20kx7Lw6hWzPWg0Rurw==,
+      }
+    peerDependencies:
+      "@types/react": ^19.0.0
+
+  "@types/react@19.1.11":
+    resolution:
+      {
+        integrity: sha512-lr3jdBw/BGj49Eps7EvqlUaoeA0xpj3pc0RoJkHpYaCHkVK7i28dKyImLQb3JVlqs3aYSXf7qYuWOW/fgZnTXQ==,
+      }
+
   "@types/readable-stream@4.0.21":
     resolution:
       {
@@ -4954,6 +4980,12 @@ packages:
         integrity: sha512-2z+rWdzbbSZv6/rhtvzvqeZQHrBaqgogqt85sqFNbabZOuFbCVFb8kPeEtZjiKkbrm395irpNKiYeFeLiQnFPg==,
       }
     engines: { node: ">=18" }
+
+  csstype@3.1.3:
+    resolution:
+      {
+        integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==,
+      }
 
   d3-array@3.2.4:
     resolution:
@@ -8248,11 +8280,26 @@ packages:
       }
     hasBin: true
 
+  react-dom@19.1.1:
+    resolution:
+      {
+        integrity: sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw==,
+      }
+    peerDependencies:
+      react: ^19.1.1
+
   react-is@18.3.1:
     resolution:
       {
         integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==,
       }
+
+  react@19.1.1:
+    resolution:
+      {
+        integrity: sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ==,
+      }
+    engines: { node: ">=0.10.0" }
 
   read-cache@1.0.0:
     resolution:
@@ -8496,6 +8543,12 @@ packages:
         integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==,
       }
     engines: { node: ">=v12.22.7" }
+
+  scheduler@0.26.0:
+    resolution:
+      {
+        integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==,
+      }
 
   schema-utils@2.7.1:
     resolution:
@@ -12316,6 +12369,14 @@ snapshots:
 
   "@types/range-parser@1.2.7": {}
 
+  "@types/react-dom@19.1.7(@types/react@19.1.11)":
+    dependencies:
+      "@types/react": 19.1.11
+
+  "@types/react@19.1.11":
+    dependencies:
+      csstype: 3.1.3
+
   "@types/readable-stream@4.0.21":
     dependencies:
       "@types/node": 22.17.2
@@ -13175,6 +13236,8 @@ snapshots:
     dependencies:
       "@asamuzakjp/css-color": 3.2.0
       rrweb-cssom: 0.8.0
+
+  csstype@3.1.3: {}
 
   d3-array@3.2.4:
     dependencies:
@@ -15269,7 +15332,14 @@ snapshots:
       minimist: 1.2.8
       strip-json-comments: 2.0.1
 
+  react-dom@19.1.1(react@19.1.1):
+    dependencies:
+      react: 19.1.1
+      scheduler: 0.26.0
+
   react-is@18.3.1: {}
+
+  react@19.1.1: {}
 
   read-cache@1.0.0:
     dependencies:
@@ -15407,6 +15477,8 @@ snapshots:
   saxes@6.0.0:
     dependencies:
       xmlchars: 2.2.0
+
+  scheduler@0.26.0: {}
 
   schema-utils@2.7.1:
     dependencies:

@@ -201,7 +201,7 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
 
       relationHtml = html`
         <div class="text-sm opacity-80">
-          ${translateText("player_info_overlay.attitude")}:
+          ${translateText("attitude")}:
           <span class="${relationClass}">${relationName}</span>
         </div>
       `;
@@ -209,13 +209,13 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
     let playerType = "";
     switch (player.type()) {
       case PlayerType.Bot:
-        playerType = translateText("player_info_overlay.bot");
+        playerType = translateText("bot");
         break;
       case PlayerType.FakeHuman:
-        playerType = translateText("player_info_overlay.nation");
+        playerType = translateText("nation");
         break;
       case PlayerType.Human:
-        playerType = translateText("player_info_overlay.player");
+        playerType = translateText("player");
         break;
     }
 
@@ -255,58 +255,58 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
           ? html`
               ${player.team() !== null
                 ? html`<div class="text-sm opacity-80">
-                    ${translateText("player_info_overlay.team")}:
+                    ${translateText("team")}:
                     ${player.team()}
                   </div>`
                 : ""}
               <div class="text-sm opacity-80">
-                ${translateText("player_info_overlay.type")}: ${playerType}
+                ${translateText("type")}: ${playerType}
               </div>
               ${player.troops() >= 1
                 ? html`<div class="text-sm opacity-80" translate="no">
-                    ${translateText("player_info_overlay.d_troops")}:
+                    ${translateText("defense troops")}:
                     ${renderTroops(player.troops())}
                   </div>`
                 : ""}
               ${attackingTroops >= 1
                 ? html`<div class="text-sm opacity-80" translate="no">
-                    ${translateText("player_info_overlay.a_troops")}:
+                    ${translateText("attack troops")}:
                     ${renderTroops(attackingTroops)}
                   </div>`
                 : ""}
               <div class="text-sm opacity-80" translate="no">
-                ${translateText("player_info_overlay.gold")}:
+                ${translateText("gold")}:
                 ${renderNumber(player.gold())}
               </div>
               ${this.displayUnitCount(
                 player,
                 UnitType.Port,
-                "player_info_overlay.ports",
+                "ports",
               )}
               ${this.displayUnitCount(
                 player,
                 UnitType.City,
-                "player_info_overlay.cities",
+                "cities",
               )}
               ${this.displayUnitCount(
                 player,
                 UnitType.Factory,
-                "player_info_overlay.factories",
+                "factories",
               )}
               ${this.displayUnitCount(
                 player,
                 UnitType.MissileSilo,
-                "player_info_overlay.missile_launchers",
+                "missile_launchers",
               )}
               ${this.displayUnitCount(
                 player,
                 UnitType.SAMLauncher,
-                "player_info_overlay.sams",
+                "sams",
               )}
               ${this.displayUnitCount(
                 player,
                 UnitType.Warship,
-                "player_info_overlay.warships",
+                "warships",
               )}
               ${relationHtml}
             `
@@ -331,7 +331,7 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
           ${unit.hasHealth()
             ? html`
                 <div class="text-sm opacity-80">
-                  ${translateText("player_info_overlay.health")}:
+                  ${translateText("health")}:
                   ${unit.health()}
                 </div>
               `
