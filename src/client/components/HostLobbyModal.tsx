@@ -217,9 +217,7 @@ export const HostLobbyModal: React.FC<HostLobbyModalProps> = ({
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(
-        `${location.origin}/#join=${lobbyId}`,
-      );
+      await navigator.clipboard.writeText(lobbyId);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { translateText } from '../Utils';
-import { generateID } from '../../core/Util';
-import { getServerConfigFromClient } from '../../core/configuration/ConfigLoader';
-import { GameInfo, GameInfoSchema } from '../../core/Schemas';
+import React, { useEffect, useRef, useState } from "react";
+import { getServerConfigFromClient } from "../../core/configuration/ConfigLoader";
+import { GameInfoSchema } from "../../core/Schemas";
+import { generateID } from "../../core/Util";
 import {
   WorkerApiArchivedGameLobbySchema,
   WorkerApiGameIdExistsSchema,
-} from '../../core/WorkerSchemas';
-import Modal from './Modal';
-import Button from './Button';
+} from "../../core/WorkerSchemas";
+import { translateText } from "../Utils";
+import Button from "./Button";
+import Modal from "./Modal";
 
 export interface JoinLobbyEvent {
   clientID: string;
@@ -28,10 +28,10 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
   isOpen,
   onClose,
   onJoinLobby,
-  lobbyId: initialLobbyId = ''
+  lobbyId: initialLobbyId = "",
 }) => {
-  const [lobbyId, setLobbyId] = useState('');
-  const [message, setMessage] = useState('');
+  const [lobbyId, setLobbyId] = useState("");
+  const [message, setMessage] = useState("");
   const [hasJoined, setHasJoined] = useState(false);
   const [players, setPlayers] = useState<string[]>([]);
   const lobbyIdInputRef = useRef<HTMLInputElement>(null);
@@ -54,12 +54,12 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
   }, []);
 
   const extractLobbyIdFromUrl = (input: string): string => {
-    if (input.startsWith('http')) {
-      if (input.includes('#join=')) {
-        const params = new URLSearchParams(input.split('#')[1]);
-        return params.get('join') ?? input;
-      } else if (input.includes('join/')) {
-        return input.split('join/')[1];
+    if (input.startsWith("http")) {
+      if (input.includes("#join=")) {
+        const params = new URLSearchParams(input.split("#")[1]);
+        return params.get("join") ?? input;
+      } else if (input.includes("join/")) {
+        return input.split("join/")[1];
       } else {
         return input;
       }
@@ -75,27 +75,60 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
 
   const pasteFromClipboard = async () => {
     try {
-      const clipText = await navigator.clipboard.readText();
-      setLobbyId(extractLobbyIdFromUrl(clipText));
-      if (lobbyIdInputRef.current) {
-        lobbyIdInputRef.current.value = extractLobbyIdFromUrl(clipText);
+      // Check if we're on a secure context (HTTPS or localhost)
+      const isSecureContext = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      // Try modern clipboard API first (works on HTTPS/localhost)
+      if (isSecureContext && navigator.clipboard && navigator.clipboard.readText) {
+        try {
+          const clipText = await navigator.clipboard.readText();
+          const extractedId = extractLobbyIdFromUrl(clipText.trim());
+          console.log(
+            `Pasted from clipboard: "${clipText}" -> extracted: "${extractedId}"`,
+          );
+
+          setLobbyId(extractedId);
+          if (lobbyIdInputRef.current) {
+            lobbyIdInputRef.current.value = extractedId;
+            lobbyIdInputRef.current.focus();
+          }
+          return;
+        } catch (clipErr) {
+          console.log("Clipboard API failed, trying fallbacks:", clipErr);
+        }
+      }
+
+      // For HTTP or when clipboard API fails, use prompt immediately
+      console.log("Using prompt fallback for clipboard access");
+      const fallbackText = prompt("Please paste your lobby ID here:");
+      if (fallbackText && fallbackText.trim()) {
+        const extractedId = extractLobbyIdFromUrl(fallbackText.trim());
+        console.log(`Manual input: "${fallbackText}" -> extracted: "${extractedId}"`);
+        setLobbyId(extractedId);
+        if (lobbyIdInputRef.current) {
+          lobbyIdInputRef.current.value = extractedId;
+          lobbyIdInputRef.current.focus();
+        }
       }
     } catch (err) {
-      console.error('Failed to read clipboard contents: ', err);
+      console.error("Paste function failed: ", err);
+      alert("Please manually type or copy-paste the lobby ID into the input field.");
     }
   };
 
   const joinLobby = async (targetLobbyId?: string): Promise<void> => {
     const targetId = targetLobbyId || lobbyId;
-    console.log(`Joining lobby with ID: "${targetId}" (length: ${targetId.length})`);
-    
+    console.log(
+      `Joining lobby with ID: "${targetId}" (length: ${targetId.length})`,
+    );
+
     if (!targetId) {
-      console.error('Empty lobby ID provided');
-      setMessage('Please enter a lobby ID');
+      console.error("Empty lobby ID provided");
+      setMessage("Please enter a lobby ID");
       return;
     }
-    
-    setMessage(translateText('checking'));
+
+    setMessage(translateText("checking"));
 
     try {
       // First, check if the game exists in active lobbies
@@ -106,10 +139,10 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
       const archivedGame = await checkArchivedGame(targetId);
       if (archivedGame) return;
 
-      setMessage(translateText('not_found'));
+      setMessage(translateText("not_found"));
     } catch (error) {
-      console.error('Error checking lobby existence:', error);
-      setMessage(translateText('error'));
+      console.error("Error checking lobby existence:", error);
+      setMessage(translateText("error"));
     }
   };
 
@@ -118,26 +151,31 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
     const url = `/${config.workerPath(targetLobbyId)}/api/game/${targetLobbyId}/exists`;
 
     const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
     });
 
     const json = await response.json();
     const gameInfo = WorkerApiGameIdExistsSchema.parse(json);
 
     if (gameInfo.exists) {
-      setMessage(translateText('waiting'));
+      setMessage(translateText("waiting"));
       setHasJoined(true);
 
       const clientID = generateID();
-      console.log(`Dispatching join-lobby event with gameID: "${targetLobbyId}", clientID: "${clientID}"`);
+      console.log(
+        `Dispatching join-lobby event with gameID: "${targetLobbyId}", clientID: "${clientID}"`,
+      );
 
       onJoinLobby({
         gameID: targetLobbyId,
         clientID: clientID,
       });
 
-      playersIntervalRef.current = setInterval(() => pollPlayers(targetLobbyId), 1000);
+      playersIntervalRef.current = setInterval(
+        () => pollPlayers(targetLobbyId),
+        1000,
+      );
       return true;
     }
 
@@ -149,16 +187,24 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
     const archiveUrl = `/${config.workerPath(targetLobbyId)}/api/archived_game/${targetLobbyId}`;
 
     const archiveResponse = await fetch(archiveUrl, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
     });
 
     const json = await archiveResponse.json();
     const archiveData = WorkerApiArchivedGameLobbySchema.parse(json);
 
-    if (archiveData.success === false && archiveData.error === 'Version mismatch') {
-      console.warn(`Git commit hash mismatch for game ${targetLobbyId}`, archiveData.details);
-      setMessage('This game was created with a different version. Cannot join.');
+    if (
+      archiveData.success === false &&
+      archiveData.error === "Version mismatch"
+    ) {
+      console.warn(
+        `Git commit hash mismatch for game ${targetLobbyId}`,
+        archiveData.details,
+      );
+      setMessage(
+        "This game was created with a different version. Cannot join.",
+      );
       return true;
     }
 
@@ -182,25 +228,25 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
       const response = await fetch(
         `/${config.workerPath(targetLobbyId)}/api/game/${targetLobbyId}`,
         {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
         },
       );
       const data = await response.json();
       const gameInfo = GameInfoSchema.parse(data);
       setPlayers(gameInfo.clients?.map((p) => p.username) ?? []);
     } catch (error) {
-      console.error('Error polling players:', error);
+      console.error("Error polling players:", error);
     }
   };
 
   const handleClose = () => {
-    setLobbyId('');
-    setMessage('');
+    setLobbyId("");
+    setMessage("");
     setHasJoined(false);
     setPlayers([]);
     if (lobbyIdInputRef.current) {
-      lobbyIdInputRef.current.value = '';
+      lobbyIdInputRef.current.value = "";
     }
     if (playersIntervalRef.current) {
       clearInterval(playersIntervalRef.current);
@@ -210,20 +256,20 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
   };
 
   const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.code === 'Enter') {
+    if (e.code === "Enter") {
       joinLobby();
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} translationKey="title">
+    <Modal isOpen={isOpen} onClose={handleClose} translationKey="Join lobby">
       <div className="space-y-6">
         <div className="lobby-id-box">
           <input
             ref={lobbyIdInputRef}
             type="text"
             id="lobbyIdInput"
-            placeholder={translateText('enter_id')}
+            placeholder={translateText("enter_id")}
             onChange={handleChange}
             onKeyUp={handleKeyUp}
             className="w-full p-2 border border-gray-600 bg-gray-700 text-white rounded"
@@ -247,17 +293,15 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
           </button>
         </div>
 
-        <div className={`message-area ${message ? 'show' : ''}`}>
-          {message}
-        </div>
+        <div className={`message-area ${message ? "show" : ""}`}>{message}</div>
 
         {hasJoined && players.length > 0 && (
           <div className="options-section">
             <div className="option-title">
               {players.length}
               {players.length === 1
-                ? translateText('player')
-                : translateText('players')}
+                ? translateText("player")
+                : translateText("players")}
             </div>
 
             <div className="players-list">
@@ -273,7 +317,7 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
         <div className="flex justify-center">
           {!hasJoined && (
             <Button
-              title={translateText('join_lobby')}
+              title={translateText("join_lobby")}
               block
               onClick={() => joinLobby()}
             />
@@ -285,3 +329,4 @@ export const JoinPrivateLobbyModal: React.FC<JoinPrivateLobbyModalProps> = ({
 };
 
 export default JoinPrivateLobbyModal;
+

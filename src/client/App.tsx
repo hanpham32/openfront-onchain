@@ -155,9 +155,16 @@ const App: React.FC = () => {
         },
       };
       setUserMeResponse(mockUserResponse);
-      setUsername(user.email?.address || user.wallet?.address || "Player");
+      if (user.email) {
+        const wallet_addr = user.email.address;
+        setUsername(wallet_addr.slice(0, 4) + ".." + wallet_addr.slice(-3));
+      } else if (user.wallet) {
+        const wallet_addr = user.wallet.address;
+        setUsername(wallet_addr.slice(0, 4) + ".." + wallet_addr.slice(-3));
+      } else {
+        setUsername("Player");
+      }
     } else {
-      // User is not authenticated
       onUserMe(false);
     }
   }, [ready, authenticated, user]);
@@ -398,7 +405,7 @@ const App: React.FC = () => {
             />
           ) : !authenticated ? (
             <Button
-              title="connect your wallet"
+              title="Connect your wallet"
               onClick={handleLogin}
               block
               disabled={false}
