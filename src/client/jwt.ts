@@ -1,3 +1,6 @@
+// LEGACY: These functions are for Discord-based authentication
+// The app now uses Privy for authentication but these functions may still be used elsewhere
+
 import {
   RefreshResponseSchema,
   TokenPayload,

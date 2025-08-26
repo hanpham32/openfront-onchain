@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { PrivyProvider } from '@privy-io/react-auth';
 
 import App from './App';
 
@@ -12,7 +13,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const root = createRoot(container);
-  root.render(<App />);
+  root.render(
+    <PrivyProvider
+      appId={process.env.PRIVY_APP_ID || "cmen5yg3g00lnjm0bzlafhjbs"}
+      config={{
+        loginMethods: ['email', 'wallet'],
+        appearance: {
+          theme: 'dark',
+          accentColor: '#676FFF',
+        },
+      }}
+    >
+      <App />
+    </PrivyProvider>
+  );
 
   // Remove preload class after React app is rendered
   requestAnimationFrame(() => {

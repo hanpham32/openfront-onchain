@@ -1,3 +1,4 @@
+import { usePrivy } from "@privy-io/react-auth";
 import React, { useEffect, useState } from "react";
 
 import { UserMeResponse } from "../core/ApiSchemas";
@@ -14,7 +15,6 @@ import {
   incrementGamesPlayed,
   translateText,
 } from "./Utils";
-import { discordLogin, getUserMe, isLoggedIn, logOut } from "./jwt";
 
 import Button from "./components/Button";
 import DarkModeButton from "./components/DarkModeButton";
@@ -61,11 +61,11 @@ declare global {
 }
 
 const App: React.FC = () => {
+  const { ready, authenticated, user, login, logout } = usePrivy();
   const [gameStop, setGameStop] = useState<(() => void) | null>(null);
   const [userMeResponse, setUserMeResponse] = useState<UserMeResponse | false>(
     false,
   );
-  const [isLoggedInState, setIsLoggedInState] = useState(false);
   const [username, setUsername] = useState("Player");
   const [selectedFlag, setSelectedFlag] = useState("xx");
   const [selectedPattern, setSelectedPattern] = useState("");
@@ -87,13 +87,6 @@ const App: React.FC = () => {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
-    }
-
-    // Handle authentication
-    if (isLoggedIn() === false) {
-      onUserMe(false);
-    } else {
-      getUserMe().then(onUserMe);
     }
 
     // Handle hash-based navigation
@@ -122,32 +115,42 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Handle Privy authentication state changes
+  useEffect(() => {
+    if (!ready) return;
+
+    if (authenticated && user) {
+      // User is authenticated with Privy
+      // You might want to create a mock UserMeResponse or call your backend
+      // For now, we'll create a basic user response
+      const mockUserResponse: UserMeResponse = {
+        user: {
+          id: user.id,
+          avatar: null,
+          username: user.email?.address || user.wallet?.address || "Player",
+          global_name: null,
+          discriminator: "0000",
+        },
+        player: {
+          publicId: user.id,
+          roles: [],
+          flares: [],
+        },
+      };
+      setUserMeResponse(mockUserResponse);
+      setUsername(user.email?.address || user.wallet?.address || "Player");
+    } else {
+      // User is not authenticated
+      onUserMe(false);
+    }
+  }, [ready, authenticated, user]);
+
   const onUserMe = async (response: UserMeResponse | false) => {
     const config = await getServerConfigFromClient();
 
     if (!hasAllowedFlare(response, config)) {
       if (response === false) {
-        // Login required
-        // eslint-disable-next-line max-len
-        document.body.innerHTML = `
-          <div style="display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; background-size: cover; background-position: center;">
-            <div style="background-color: rgba(0, 0, 0, 0.7); color: white; padding: 2em; margin: 5em; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);">
-              <p style="margin-bottom: 1em;">${translateText("auth.login_required")}</p>
-              <p style="margin-bottom: 1.5em;">${translateText("auth.redirecting")}</p>
-              <div style="width: 100%; height: 8px; background-color: #444; border-radius: 4px; overflow: hidden;">
-                <div style="height: 100%; width: 0%; background-color: #4caf50; animation: fillBar 5s linear forwards;"></div>
-              </div>
-            </div>
-          </div>
-          <div class="bg-image"></div>
-          <style>
-            @keyframes fillBar {
-              from { width: 0%; }
-              to { width: 100%; }
-            }
-          </style>
-        `;
-        setTimeout(discordLogin, 5000);
+        // User needs to authenticate - this will be handled by the UI now
       } else {
         // Unauthorized
         // eslint-disable-next-line max-len
@@ -165,7 +168,6 @@ const App: React.FC = () => {
     }
 
     setUserMeResponse(response);
-    setIsLoggedInState(response !== false);
   };
 
   const handleHash = () => {
@@ -269,12 +271,12 @@ const App: React.FC = () => {
   };
 
   const handleLogin = () => {
-    discordLogin();
+    login();
   };
 
   const handleLogout = () => {
-    logOut();
-    onUserMe(false);
+    logout();
+    setUserMeResponse(false);
   };
 
   return (
@@ -318,9 +320,16 @@ const App: React.FC = () => {
 
       <main className="flex justify-center flex-grow">
         <div className="container pt-12">
-          {!isLoggedInState ? (
+          {!ready ? (
             <Button
-              title="Initializing..."
+              title="Loading..."
+              onClick={() => {}}
+              block
+              disabled={true}
+            />
+          ) : !authenticated ? (
+            <Button
+              title="Connect your wallet"
               onClick={handleLogin}
               block
               disabled={false}
@@ -508,15 +517,13 @@ const App: React.FC = () => {
 
 // WARNING: DO NOT EXPOSE THIS ID
 function getPlayToken(): string {
-  const result = isLoggedIn();
-  if (result !== false) return result.token;
+  // For now, return persistent ID until Privy token integration is complete
   return getPersistentIDFromCookie();
 }
 
 // WARNING: DO NOT EXPOSE THIS ID
 export function getPersistentID(): string {
-  const result = isLoggedIn();
-  if (result !== false) return result.claims.sub;
+  // For now, return persistent ID until Privy token integration is complete
   return getPersistentIDFromCookie();
 }
 
