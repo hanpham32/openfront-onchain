@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useAccount, useWriteContract } from "wagmi";
 import {
   ClientInfo,
   GameConfig,
@@ -69,6 +70,14 @@ export const HostLobbyModal: React.FC<HostLobbyModalProps> = ({
   const [lobbyCreatorClientID, setLobbyCreatorClientID] = useState("");
   const [lobbyIdVisible, setLobbyIdVisible] = useState(true);
 
+  const { address, isConnected } = useAccount();
+
+  const {
+    writeContract: createLobby,
+    data: createLobbyHash,
+    error: createLobbyError,
+  } = useWriteContract();
+
   const userSettings = new UserSettings();
 
   // Polling for players
@@ -112,7 +121,9 @@ export const HostLobbyModal: React.FC<HostLobbyModalProps> = ({
     setLobbyIdVisible(userSettings.get("settings.lobbyIdVisibility", true));
 
     try {
-      const lobby = await createLobby(creatorClientID);
+      // For now, fallback to the original server-based lobby creation
+      // TODO: Replace with smart contract createLobby call when implemented
+      const lobby = await createLobbyFallback(creatorClientID);
       setLobbyId(lobby.gameID);
 
       onJoinLobby({
@@ -536,26 +547,26 @@ export const HostLobbyModal: React.FC<HostLobbyModalProps> = ({
 
           <div className="players-list">
             {clients.map((client) => (
-                <span key={client.clientID} className="player-tag">
-                  {client.username}
-                  {client.clientID === lobbyCreatorClientID ? (
-                    <span className="host-badge">
-                      <FaStar
-                        className="host-icon"
-                        size={16}
-                        style={{ marginLeft: "8px", color: "#ffd700" }}
-                      />
-                    </span>
-                  ) : (
-                    <button
-                      className="remove-player-btn"
-                      onClick={() => kickPlayer(client.clientID)}
-                      title={`Remove ${client.username}`}
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
+              <span key={client.clientID} className="player-tag">
+                {client.username}
+                {client.clientID === lobbyCreatorClientID ? (
+                  <span className="host-badge">
+                    <FaStar
+                      className="host-icon"
+                      size={16}
+                      style={{ marginLeft: "8px", color: "#ffd700" }}
+                    />
+                  </span>
+                ) : (
+                  <button
+                    className="remove-player-btn"
+                    onClick={() => kickPlayer(client.clientID)}
+                    title={`Remove ${client.username}`}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
             ))}
           </div>
 
@@ -576,7 +587,7 @@ export const HostLobbyModal: React.FC<HostLobbyModalProps> = ({
   );
 };
 
-async function createLobby(creatorClientID: string): Promise<GameInfo> {
+async function createLobbyFallback(creatorClientID: string): Promise<GameInfo> {
   const config = await getServerConfigFromClient();
   try {
     const id = generateID();
