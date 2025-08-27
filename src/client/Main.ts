@@ -18,7 +18,6 @@ import { FlagInputModal } from "./FlagInputModal";
 import { GameStartingModal } from "./GameStartingModal";
 import { GameType } from "../core/game/Game";
 import { HelpModal } from "./HelpModal";
-import { HostLobbyModal } from "./HostLobbyModal";
 import { JoinPrivateLobbyModal } from "./JoinPrivateLobbyModal";
 import { LangSelector } from "./LangSelector";
 import { LanguageModal } from "./LanguageModal";
@@ -354,19 +353,6 @@ class Client {
       ?.addEventListener("click", () => {
         settingsModal.open();
       });
-
-    const hostModal = document.querySelector(
-      "host-lobby-modal",
-    ) as HostLobbyModal;
-    hostModal instanceof HostLobbyModal;
-    const hostLobbyButton = document.getElementById("host-lobby-button");
-    if (hostLobbyButton === null) throw new Error("Missing host-lobby-button");
-    hostLobbyButton.addEventListener("click", () => {
-      if (this.usernameInput?.isValid()) {
-        hostModal.open();
-        this.publicLobby.leaveLobby();
-      }
-    });
 
     this.joinModal = document.querySelector(
       "join-private-lobby-modal",
