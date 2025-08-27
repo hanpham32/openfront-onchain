@@ -683,3 +683,25 @@ news-button .active button::after {
 .remove-player-btn:hover {
   background: #ff6666;
 }
+
+.create-lobby-button-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.create-lobby-button {
+  width: 100%;
+  max-width: 300px;
+  padding: 15px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+  display: inline-block;
+  margin: 0 0 20px 0;
+}

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { translateText } from '../Utils';
+import React, { useEffect } from "react";
+import { translateText } from "../Utils";
 
 interface ModalProps {
   isOpen: boolean;
@@ -13,40 +13,40 @@ interface ModalProps {
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
-  title = '',
-  translationKey = '',
+  title = "",
+  translationKey = "",
   alwaysMaximized = false,
-  children
+  children,
 }) => {
   const displayTitle = translationKey ? translateText(translationKey) : title;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Escape' && isOpen) {
+      if (e.code === "Escape" && isOpen) {
         e.preventDefault();
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50 overflow-y-auto"
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black bg-opacity-50 overflow-y-auto w-full"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div 
+      <div
         className={`
-          bg-gray-800 rounded-lg min-w-[340px] max-w-[860px] border border-gray-600
-          ${alwaysMaximized ? 'w-full min-h-[320px] h-[60vh]' : ''}
+          bg-gray-800 rounded-lg min-w-[340px] max-w-[1200px] border border-gray-600
+          ${alwaysMaximized ? "w-full min-h-[320px] h-[60vh]" : ""}
         `}
         onClick={(e) => e.stopPropagation()}
       >

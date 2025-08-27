@@ -45,8 +45,7 @@ This will output test accounts with private keys. Copy one of the private keys f
 
 ```shell
 # Terminal 2: Deploy the contract (first account is deployer)
-PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 forge script │
-│ script/DeployOpenfront.s.sol:DeployOpenfront --rpc-url http://localhost:8545 --broadcast
+PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 forge script script/DeployOpenfront.s.sol:DeployOpenfront --rpc-url http://localhost:8545 --broadcast
 ```
 
 #### Example Output
