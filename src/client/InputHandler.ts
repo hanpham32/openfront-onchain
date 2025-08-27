@@ -138,12 +138,48 @@ export class InputHandler {
 
   private readonly userSettings: UserSettings = new UserSettings();
 
+  // Initialization guard to avoid duplicate listeners
+  private isInitialized = false;
+
+  // Stored listeners for clean teardown
+  private pointerDownListener?: (e: PointerEvent) => void;
+  private pointerUpListener?: (e: PointerEvent) => void;
+  private wheelListener?: (e: WheelEvent) => void;
+  private pointerMoveWindowListener?: (e: PointerEvent) => void;
+  private contextMenuListener?: (e: MouseEvent) => void;
+  private mouseMoveWindowListener?: (e: MouseEvent) => void;
+  private touchStartListener?: (e: TouchEvent) => void;
+  private touchMoveListener?: (e: TouchEvent) => void;
+  private touchEndListener?: (e: TouchEvent) => void;
+  private keydownListener?: (e: KeyboardEvent) => void;
+  private keyupListener?: (e: KeyboardEvent) => void;
+
+  private isEditableTarget(event: KeyboardEvent): boolean {
+    const target = event.target as HTMLElement | null;
+    const active = (document.activeElement as HTMLElement | null) ?? null;
+
+    const isEditable = (el: HTMLElement | null) => {
+      if (!el) return false;
+      const tag = el.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      if (el.isContentEditable) return true;
+      return false;
+    };
+
+    if (isEditable(target)) return true;
+    if (isEditable(active)) return true;
+    return false;
+  }
+
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly eventBus: EventBus,
   ) {}
 
   initialize() {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
+
     this.keybinds = {
       toggleView: "Space",
       centerCamera: "KeyC",
@@ -168,33 +204,41 @@ export class InputHandler {
       this.keybinds.modifierKey = "MetaLeft"; // Use Command key on Mac
     }
 
-    this.canvas.addEventListener("pointerdown", (e) => this.onPointerDown(e));
-    window.addEventListener("pointerup", (e) => this.onPointerUp(e));
-    this.canvas.addEventListener(
-      "wheel",
-      (e) => {
-        this.onScroll(e);
-        this.onShiftScroll(e);
-        this.onTrackpadPan(e);
-        e.preventDefault();
-      },
-      { passive: false },
-    );
-    window.addEventListener("pointermove", this.onPointerMove.bind(this));
-    this.canvas.addEventListener("contextmenu", (e) => this.onContextMenu(e));
-    window.addEventListener("mousemove", (e) => {
+    this.pointerDownListener = (e: PointerEvent) => this.onPointerDown(e);
+    this.pointerUpListener = (e: PointerEvent) => this.onPointerUp(e);
+    this.wheelListener = (e: WheelEvent) => {
+      this.onScroll(e);
+      this.onShiftScroll(e);
+      this.onTrackpadPan(e);
+      e.preventDefault();
+    };
+    this.pointerMoveWindowListener = (e: PointerEvent) => this.onPointerMove(e);
+    this.contextMenuListener = (e: MouseEvent) => this.onContextMenu(e);
+    this.mouseMoveWindowListener = (e: MouseEvent) => {
       if (e.movementX || e.movementY) {
         this.eventBus.emit(new MouseMoveEvent(e.clientX, e.clientY));
       }
-    });
+    };
+    this.touchStartListener = (e: TouchEvent) => this.onTouchStart(e);
+    this.touchMoveListener = (e: TouchEvent) => this.onTouchMove(e);
+    this.touchEndListener = (e: TouchEvent) => this.onTouchEnd(e);
 
-    this.canvas.addEventListener("touchstart", (e) => this.onTouchStart(e), {
+    this.canvas.addEventListener("pointerdown", this.pointerDownListener);
+    window.addEventListener("pointerup", this.pointerUpListener);
+    this.canvas.addEventListener("wheel", this.wheelListener, {
       passive: false,
     });
-    this.canvas.addEventListener("touchmove", (e) => this.onTouchMove(e), {
+    window.addEventListener("pointermove", this.pointerMoveWindowListener);
+    this.canvas.addEventListener("contextmenu", this.contextMenuListener);
+    window.addEventListener("mousemove", this.mouseMoveWindowListener);
+
+    this.canvas.addEventListener("touchstart", this.touchStartListener, {
       passive: false,
     });
-    this.canvas.addEventListener("touchend", (e) => this.onTouchEnd(e), {
+    this.canvas.addEventListener("touchmove", this.touchMoveListener, {
+      passive: false,
+    });
+    this.canvas.addEventListener("touchend", this.touchEndListener, {
       passive: false,
     });
     this.pointers.clear();
@@ -251,9 +295,12 @@ export class InputHandler {
       ) {
         this.eventBus.emit(new ZoomEvent(cx, cy, -this.ZOOM_SPEED));
       }
-    }, 1);
+    }, 16);
 
-    window.addEventListener("keydown", (e) => {
+    this.keydownListener = (e: KeyboardEvent) => {
+      if (this.isEditableTarget(e)) {
+        return;
+      }
       if (e.code === this.keybinds.toggleView) {
         e.preventDefault();
         if (!this.alternateView) {
@@ -292,8 +339,11 @@ export class InputHandler {
       ) {
         this.activeKeys.add(e.code);
       }
-    });
-    window.addEventListener("keyup", (e) => {
+    };
+    this.keyupListener = (e: KeyboardEvent) => {
+      if (this.isEditableTarget(e)) {
+        return;
+      }
       if (e.code === this.keybinds.toggleView) {
         e.preventDefault();
         this.alternateView = false;
@@ -330,8 +380,6 @@ export class InputHandler {
         this.eventBus.emit(new CenterCameraEvent());
       }
 
-      // Shift-D to toggle performance overlay
-      console.log(e.code, e.shiftKey, e.ctrlKey, e.altKey, e.metaKey);
       if (e.code === "KeyD" && e.shiftKey) {
         e.preventDefault();
         console.log("TogglePerformanceOverlayEvent");
@@ -339,7 +387,10 @@ export class InputHandler {
       }
 
       this.activeKeys.delete(e.code);
-    });
+    };
+
+    window.addEventListener("keydown", this.keydownListener);
+    window.addEventListener("keyup", this.keyupListener);
   }
 
   private onPointerDown(event: PointerEvent) {
@@ -562,10 +613,51 @@ export class InputHandler {
   }
 
   destroy() {
+    if (!this.isInitialized) return;
+
     if (this.moveInterval !== null) {
       clearInterval(this.moveInterval);
+      this.moveInterval = null;
     }
+
+    if (this.pointerDownListener)
+      this.canvas.removeEventListener("pointerdown", this.pointerDownListener);
+    if (this.pointerUpListener)
+      window.removeEventListener("pointerup", this.pointerUpListener);
+    if (this.wheelListener)
+      this.canvas.removeEventListener("wheel", this.wheelListener as EventListener);
+    if (this.pointerMoveWindowListener)
+      window.removeEventListener("pointermove", this.pointerMoveWindowListener);
+    if (this.contextMenuListener)
+      this.canvas.removeEventListener("contextmenu", this.contextMenuListener);
+    if (this.mouseMoveWindowListener)
+      window.removeEventListener("mousemove", this.mouseMoveWindowListener);
+    if (this.touchStartListener)
+      this.canvas.removeEventListener("touchstart", this.touchStartListener as EventListener);
+    if (this.touchMoveListener)
+      this.canvas.removeEventListener("touchmove", this.touchMoveListener as EventListener);
+    if (this.touchEndListener)
+      this.canvas.removeEventListener("touchend", this.touchEndListener as EventListener);
+    if (this.keydownListener)
+      window.removeEventListener("keydown", this.keydownListener);
+    if (this.keyupListener)
+      window.removeEventListener("keyup", this.keyupListener);
+
+    this.pointerDownListener = undefined;
+    this.pointerUpListener = undefined;
+    this.wheelListener = undefined;
+    this.pointerMoveWindowListener = undefined;
+    this.contextMenuListener = undefined;
+    this.mouseMoveWindowListener = undefined;
+    this.touchStartListener = undefined;
+    this.touchMoveListener = undefined;
+    this.touchEndListener = undefined;
+    this.keydownListener = undefined;
+    this.keyupListener = undefined;
+
+    this.pointers.clear();
     this.activeKeys.clear();
+    this.isInitialized = false;
   }
 
   isModifierKeyPressed(event: PointerEvent): boolean {

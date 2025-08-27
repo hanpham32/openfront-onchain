@@ -368,6 +368,8 @@ export class ClientGameRunner {
     if (!this.isActive) return;
 
     this.isActive = false;
+    // Tear down input listeners and timers to avoid leaks/duplicates
+    this.input.destroy();
     this.worker.cleanup();
     this.transport.leaveGame(saveFullGame);
     if (this.connectionCheckInterval) {

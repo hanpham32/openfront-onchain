@@ -1,5 +1,5 @@
 import { usePrivy } from "@privy-io/react-auth";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { UserMeResponse } from "../core/ApiSchemas";
 import { EventBus } from "../core/EventBus";
@@ -74,6 +74,7 @@ const App: React.FC = () => {
   const [isUsernameValid, setIsUsernameValid] = useState(true);
   const [isHostLobbyOpen, setIsHostLobbyOpen] = useState(false);
   const [isJoinLobbyOpen, setIsJoinLobbyOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState(window.location.hash);
 
   // Refs for the converted components
   const usernameInputRef = useRef<{
@@ -86,6 +87,15 @@ const App: React.FC = () => {
 
   const eventBus = new EventBus();
   const userSettings = new UserSettings();
+
+  // Memoize lobbyId calculation to prevent unnecessary re-renders
+  const currentLobbyId = useMemo(() => {
+    if (currentHash.startsWith("#")) {
+      const params = new URLSearchParams(currentHash.slice(1));
+      return params.get("join") ?? "";
+    }
+    return "";
+  }, [currentHash]);
 
   useEffect(() => {
     const gameVersionEl = document.getElementById(
@@ -103,12 +113,14 @@ const App: React.FC = () => {
     }
 
     // Handle hash-based navigation
+    setCurrentHash(window.location.hash);
     handleHash();
 
     // Modal event listeners are now handled directly through React props
 
     // Event listeners
     const handleHashChange = () => {
+      setCurrentHash(window.location.hash);
       if (gameStop !== null) {
         handleLeaveLobby();
       }
@@ -217,7 +229,8 @@ const App: React.FC = () => {
       }
       const lobbyId = params.get("join");
       if (lobbyId && ID.safeParse(lobbyId).success) {
-        // Handle join lobby logic here
+        // Auto-open join modal with the lobby ID
+        setIsJoinLobbyOpen(true);
         console.log(`joining lobby ${lobbyId}`);
       }
     }
@@ -523,6 +536,7 @@ const App: React.FC = () => {
         isOpen={isJoinLobbyOpen}
         onClose={() => setIsJoinLobbyOpen(false)}
         onJoinLobby={handleJoinLobbyReact}
+        lobbyId={currentLobbyId}
       />
 
       <footer className="l-footer">

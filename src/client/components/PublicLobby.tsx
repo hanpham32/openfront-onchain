@@ -3,6 +3,8 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import { ApiPublicLobbiesResponseSchema } from "../../core/ExpressSchemas";
@@ -16,20 +18,19 @@ export interface JoinLobbyEvent {
   clientID: string;
   gameID: string;
 }
-
 export interface LeaveLobbyEvent {
   lobby: GameInfo;
 }
-
 interface PublicLobbyProps {
   onJoinLobby: (event: JoinLobbyEvent) => void;
   onLeaveLobby?: (event: LeaveLobbyEvent) => void;
 }
-
-interface PublicLobbyRef {
+export interface PublicLobbyRef {
   stop: () => void;
   leaveLobby: () => void;
 }
+
+const POLL_MS = 2000;
 
 const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(
   ({ onJoinLobby, onLeaveLobby }, ref) => {
@@ -37,66 +38,114 @@ const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(
     const [isLobbyHighlighted, setIsLobbyHighlighted] = useState(false);
     const [isButtonDebounced, setIsButtonDebounced] = useState(false);
     const [mapImages, setMapImages] = useState<Map<GameID, string>>(new Map());
-    const [lobbyIDToStart] = useState<Map<GameID, number>>(new Map());
     const [currLobby, setCurrLobby] = useState<GameInfo | null>(null);
+
+    // store first-seen start timestamps (stable ref, avoid re-renders)
+    const lobbyStartRef = useRef<Map<GameID, number>>(new Map());
+    // avoid duplicate image loads
+    const loadingImagesRef = useRef<Set<GameID>>(new Set());
+
+    // polling guards
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const inFlightRef = useRef(false);
+    const isHiddenRef = useRef(document.hidden);
 
     const debounceDelay = 750;
 
-    const loadMapImage = async (gameID: GameID, gameMap: string) => {
-      try {
-        const mapType = gameMap as GameMapType;
-        const data = terrainMapFileLoader.getMapData(mapType);
-        const imagePath = await data.webpPath();
+    const fetchLobbies = useCallback(async (): Promise<GameInfo[]> => {
+      const response = await fetch("/api/public_lobbies");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const json = await response.json();
+      const data = ApiPublicLobbiesResponseSchema.parse(json);
+      return data.lobbies;
+    }, []);
 
-        setMapImages((prev) => new Map(prev).set(gameID, imagePath));
-      } catch (error) {
-        console.error("Failed to load map image:", error);
-      }
-    };
-
-    const fetchAndUpdateLobbies = useCallback(async (): Promise<void> => {
+    const fetchAndUpdateLobbies = useCallback(async () => {
+      if (inFlightRef.current || isHiddenRef.current) return;
+      inFlightRef.current = true;
       try {
         const newLobbies = await fetchLobbies();
-        setLobbies(newLobbies);
+        // only update state if changed (cheap shallow compare by ids + counts)
+        const sameLength = lobbies.length === newLobbies.length;
+        const sameList =
+          sameLength &&
+          lobbies.every((old, i) => {
+            const n = newLobbies[i];
+            return (
+              old.gameID === n.gameID &&
+              old.numClients === n.numClients &&
+              old.msUntilStart === n.msUntilStart
+            );
+          });
+        if (!sameList) setLobbies(newLobbies);
 
-        newLobbies.forEach((lobby) => {
-          // Store the start time on first fetch because endpoint is cached
-          if (!lobbyIDToStart.has(lobby.gameID)) {
+        // fill start times once (mutate ref only)
+        for (const lobby of newLobbies) {
+          if (!lobbyStartRef.current.has(lobby.gameID)) {
             const msUntilStart = lobby.msUntilStart ?? 0;
-            lobbyIDToStart.set(lobby.gameID, msUntilStart + Date.now());
+            lobbyStartRef.current.set(lobby.gameID, Date.now() + msUntilStart);
           }
-
-          // Load map image if not already loaded
-          if (lobby.gameConfig && !mapImages.has(lobby.gameID)) {
-            loadMapImage(lobby.gameID, lobby.gameConfig.gameMap);
-          }
-        });
-      } catch (error) {
-        console.error("Error fetching lobbies:", error);
-      }
-    }, [lobbyIDToStart, mapImages]);
-
-    const fetchLobbies = async (): Promise<GameInfo[]> => {
-      try {
-        const response = await fetch("/api/public_lobbies");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const json = await response.json();
-        const data = ApiPublicLobbiesResponseSchema.parse(json);
-        return data.lobbies;
-      } catch (error) {
-        console.error("Error fetching lobbies:", error);
-        throw error;
+      } catch (err) {
+        console.error("Error fetching lobbies:", err);
+      } finally {
+        inFlightRef.current = false;
       }
-    };
+    }, [fetchLobbies, lobbies]);
 
-    // Set up polling interval
+    // Stable polling loop (no dependency on mapImages)
     useEffect(() => {
+      // prime once
       fetchAndUpdateLobbies();
-      const interval = setInterval(() => fetchAndUpdateLobbies(), 1000);
-      return () => clearInterval(interval);
+
+      intervalRef.current = setInterval(fetchAndUpdateLobbies, POLL_MS);
+      const onVis = () => {
+        isHiddenRef.current = document.hidden;
+        if (document.hidden) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        } else {
+          // restart polling when tab becomes visible
+          if (!intervalRef.current) {
+            fetchAndUpdateLobbies(); // immediate refresh on resume
+            intervalRef.current = setInterval(fetchAndUpdateLobbies, POLL_MS);
+          }
+        }
+      };
+      document.addEventListener("visibilitychange", onVis);
+      return () => {
+        document.removeEventListener("visibilitychange", onVis);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      };
     }, [fetchAndUpdateLobbies]);
+
+    // Load images when lobbies list changes (decoupled from polling effect)
+    useEffect(() => {
+      for (const lobby of lobbies) {
+        if (!lobby.gameConfig) continue;
+        const id = lobby.gameID;
+        if (mapImages.has(id) || loadingImagesRef.current.has(id)) continue;
+
+        loadingImagesRef.current.add(id);
+        (async () => {
+          try {
+            const mapType = lobby.gameConfig!.gameMap as GameMapType;
+            const data = terrainMapFileLoader.getMapData(mapType);
+            const imagePath = await data.webpPath();
+            setMapImages((prev) => {
+              const next = new Map(prev);
+              next.set(id, imagePath);
+              return next;
+            });
+          } catch (e) {
+            console.error("Failed to load map image:", e);
+          } finally {
+            loadingImagesRef.current.delete(id);
+          }
+        })();
+      }
+    }, [lobbies, mapImages]);
 
     const stop = useCallback(() => {
       setIsLobbyHighlighted(false);
@@ -108,60 +157,54 @@ const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(
     }, []);
 
     const lobbyClicked = (lobby: GameInfo) => {
-      if (isButtonDebounced) {
-        return;
-      }
+      if (isButtonDebounced) return;
 
-      // Set debounce state
       setIsButtonDebounced(true);
-      setTimeout(() => {
-        setIsButtonDebounced(false);
-      }, debounceDelay);
+      setTimeout(() => setIsButtonDebounced(false), debounceDelay);
 
       if (currLobby === null) {
         setIsLobbyHighlighted(true);
         setCurrLobby(lobby);
-        onJoinLobby({
-          gameID: lobby.gameID,
-          clientID: generateID(),
-        });
+        onJoinLobby({ gameID: lobby.gameID, clientID: generateID() });
       } else {
         onLeaveLobby?.({ lobby: currLobby });
         leaveLobby();
       }
     };
 
-    // Expose methods via ref
-    useImperativeHandle(
-      ref,
-      () => ({
-        stop,
-        leaveLobby,
-      }),
-      [stop, leaveLobby],
-    );
+    useImperativeHandle(ref, () => ({ stop, leaveLobby }), [stop, leaveLobby]);
 
-    // Return nothing if no lobbies (matches original Lit component)
-    if (lobbies.length === 0) return null;
-
+    // Move memoized values before early returns to avoid hook order issues
     const lobby = lobbies[0];
-    if (!lobby?.gameConfig) {
-      return null;
-    }
-
-    const start = lobbyIDToStart.get(lobby.gameID) ?? 0;
-    const timeRemaining = Math.max(0, Math.floor((start - Date.now()) / 1000));
-
-    // Format time to show minutes and seconds
-    const minutes = Math.floor(timeRemaining / 60);
-    const seconds = timeRemaining % 60;
-    const timeDisplay = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-
     const teamCount =
-      lobby.gameConfig.gameMode === GameMode.Team
+      lobby?.gameConfig?.gameMode === GameMode.Team
         ? (lobby.gameConfig.playerTeams ?? 0)
         : null;
 
+    // minor memo to avoid re-allocating translated literals
+    const joinText = useMemo(() => translateText("Join"), []);
+    const teamsText = useMemo(
+      () => translateText("Teams", { num: teamCount ?? 0 }),
+      [teamCount],
+    );
+    const ffaText = useMemo(() => translateText("game_mode.ffa"), []);
+    const mapLabel = useMemo(
+      () =>
+        translateText(
+          `map.${lobby?.gameConfig?.gameMap.toLowerCase().replace(/\s+/g, "") ?? ""}`,
+        ),
+      [lobby?.gameConfig?.gameMap],
+    );
+
+    // Early returns after all hooks
+    if (lobbies.length === 0) return null;
+    if (!lobby?.gameConfig) return null;
+
+    const start = lobbyStartRef.current.get(lobby.gameID) ?? 0;
+    const timeRemaining = Math.max(0, Math.floor((start - Date.now()) / 1000));
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    const timeDisplay = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
     const mapImageSrc = mapImages.get(lobby.gameID);
 
     return (
@@ -182,15 +225,16 @@ const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(
             alt={lobby.gameConfig.gameMap}
             className="place-self-start col-span-full row-span-full h-full -z-10"
             style={{ maskImage: "linear-gradient(to left, transparent, #fff)" }}
+            loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="place-self-start col-span-full row-span-full h-full -z-10 bg-gray-300" />
         )}
+
         <div className="flex flex-col justify-between h-full col-span-full row-span-full p-4 md:p-6 text-right z-0">
           <div>
-            <div className="text-lg md:text-2xl font-semibold">
-              {translateText("Join")}
-            </div>
+            <div className="text-lg md:text-2xl font-semibold">{joinText}</div>
             <div className="text-md font-medium text-blue-100">
               <span
                 className={`text-sm ${
@@ -198,18 +242,10 @@ const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(
                 } bg-white rounded-sm px-1`}
               >
                 {lobby.gameConfig.gameMode === GameMode.Team
-                  ? typeof teamCount === "string"
-                    ? translateText(`Teams ${teamCount}`)
-                    : translateText("Teams", {
-                        num: teamCount ?? 0,
-                      })
-                  : translateText("game_mode.ffa")}
+                  ? teamsText
+                  : ffaText}
               </span>
-              <span>
-                {translateText(
-                  `map.${lobby.gameConfig.gameMap.toLowerCase().replace(/\s+/g, "")}`,
-                )}
-              </span>
+              <span>{mapLabel}</span>
             </div>
           </div>
 
@@ -228,5 +264,4 @@ const PublicLobby = forwardRef<PublicLobbyRef, PublicLobbyProps>(
 );
 
 PublicLobby.displayName = "PublicLobby";
-
 export default PublicLobby;

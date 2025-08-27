@@ -2,7 +2,6 @@ import "./DarkModeButton";
 import "./FlagInput";
 import "./GoogleAdElement";
 import "./LangSelector";
-import "./PublicLobby";
 import "./UsernameInput";
 import "./components/NewsButton";
 import "./components/baseComponents/Button";
@@ -18,13 +17,11 @@ import { FlagInputModal } from "./FlagInputModal";
 import { GameStartingModal } from "./GameStartingModal";
 import { GameType } from "../core/game/Game";
 import { HelpModal } from "./HelpModal";
-import { JoinPrivateLobbyModal } from "./JoinPrivateLobbyModal";
 import { LangSelector } from "./LangSelector";
 import { LanguageModal } from "./LanguageModal";
 import { NewsButton } from "./components/NewsButton";
 import { NewsModal } from "./NewsModal";
 import { OButton } from "./components/baseComponents/Button";
-import { PublicLobby } from "./PublicLobby";
 import { SendKickPlayerIntentEvent } from "./Transport";
 import { ServerConfig } from "../core/configuration/Config";
 import { SinglePlayerModal } from "./SinglePlayerModal";
@@ -88,8 +85,7 @@ class Client {
   private flagInput: FlagInput | null = null;
   private darkModeButton: DarkModeButton | null = null;
 
-  private joinModal: JoinPrivateLobbyModal;
-  private publicLobby: PublicLobby;
+  private joinModal: any; // JoinPrivateLobbyModal
   private readonly userSettings: UserSettings = new UserSettings();
 
   constructor() {}
@@ -157,8 +153,6 @@ class Client {
     if (!this.usernameInput) {
       console.warn("Username input element not found");
     }
-
-    this.publicLobby = document.querySelector("public-lobby") as PublicLobby;
 
     window.addEventListener("beforeunload", () => {
       console.log("Browser is closing");
@@ -354,21 +348,6 @@ class Client {
         settingsModal.open();
       });
 
-    this.joinModal = document.querySelector(
-      "join-private-lobby-modal",
-    ) as JoinPrivateLobbyModal;
-    this.joinModal instanceof JoinPrivateLobbyModal;
-    const joinPrivateLobbyButton = document.getElementById(
-      "join-private-lobby-button",
-    );
-    if (joinPrivateLobbyButton === null)
-      throw new Error("Missing join-private-lobby-button");
-    joinPrivateLobbyButton.addEventListener("click", () => {
-      if (this.usernameInput?.isValid()) {
-        this.joinModal.open();
-      }
-    });
-
     if (this.userSettings.darkMode()) {
       document.documentElement.classList.add("dark");
     } else {
@@ -380,7 +359,7 @@ class Client {
 
     const onHashUpdate = () => {
       // Reset the UI to its initial state
-      this.joinModal.close();
+      this.joinModal?.close();
       if (this.gameStop !== null) {
         this.handleLeaveLobby();
       }
@@ -434,7 +413,7 @@ class Client {
       }
       const lobbyId = params.get("join");
       if (lobbyId && ID.safeParse(lobbyId).success) {
-        this.joinModal.open(lobbyId);
+        this.joinModal?.open(lobbyId);
         console.log(`joining lobby ${lobbyId}`);
       }
     }
@@ -494,10 +473,6 @@ class Client {
             modal.isModalOpen = false;
           }
         });
-        this.publicLobby.stop();
-        document.querySelectorAll(".ad").forEach((ad) => {
-          (ad as HTMLElement).style.display = "none";
-        });
 
         // show when the game loads
         const startingModal = document.querySelector(
@@ -507,8 +482,6 @@ class Client {
         startingModal.show();
       },
       () => {
-        this.joinModal.close();
-        this.publicLobby.stop();
         incrementGamesPlayed();
 
         try {
@@ -535,7 +508,6 @@ class Client {
     console.log("leaving lobby, cancelling game");
     this.gameStop();
     this.gameStop = null;
-    this.publicLobby.leaveLobby();
   }
 
   private handleKickPlayer(event: CustomEvent<KickPlayerEvent>) {
