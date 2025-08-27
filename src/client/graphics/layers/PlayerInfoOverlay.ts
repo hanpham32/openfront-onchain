@@ -15,7 +15,7 @@ import { EventBus } from "../../../core/EventBus";
 import { Layer } from "./Layer";
 import { TileRef } from "../../../core/game/GameMap";
 import { TransformHandler } from "../TransformHandler";
-import { ref } from "lit-html/directives/ref.js";
+import { ref } from "lit/directives/ref.js";
 import { renderPlayerFlag } from "../../../core/CustomFlag";
 import { translateText } from "../../../client/Utils";
 
