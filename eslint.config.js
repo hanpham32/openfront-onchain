@@ -71,10 +71,7 @@ export default [
         },
       ],
       "@stylistic/eol-last": "error",
-      "@typescript-eslint/consistent-type-definitions": [
-        "error",
-        "type",
-      ],
+      "@typescript-eslint/consistent-type-definitions": "off",
       "@typescript-eslint/no-duplicate-enum-values": "error",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-inferrable-types": "error",
@@ -123,7 +120,7 @@ export default [
         object: true,
       }],
       "quote-props": ["error", "consistent-as-needed"],
-      "sort-imports": "error",
+      "sort-imports": "off",
       "space-before-blocks": ["error", "always"],
       "space-before-function-paren": ["error", {
         anonymous: "always",
