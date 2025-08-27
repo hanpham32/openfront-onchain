@@ -1,9 +1,9 @@
 import { PrivyProvider } from "@privy-io/react-auth";
+import { WagmiProvider } from "@privy-io/wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
-import { WagmiProvider } from "wagmi";
-import { wagmiConfig } from "../config/wagmi";
 
+import { wagmiConfig } from "../config/wagmi";
 import App from "./App";
 
 const queryClient = new QueryClient();
@@ -20,22 +20,22 @@ document.addEventListener("DOMContentLoaded", () => {
   root.render(
     <html>
       <body>
-        <WagmiProvider config={wagmiConfig}>
+        <PrivyProvider
+          appId={process.env.PRIVY_APP_ID ?? "cmen5yg3g00lnjm0bzlafhjbs"}
+          config={{
+            loginMethods: ["email", "wallet"],
+            appearance: {
+              theme: "dark",
+              accentColor: "#676FFF",
+            },
+          }}
+        >
           <QueryClientProvider client={queryClient}>
-            <PrivyProvider
-              appId={process.env.PRIVY_APP_ID ?? "cmen5yg3g00lnjm0bzlafhjbs"}
-              config={{
-                loginMethods: ["email", "wallet"],
-                appearance: {
-                  theme: "dark",
-                  accentColor: "#676FFF",
-                },
-              }}
-            >
+            <WagmiProvider config={wagmiConfig}>
               <App />
-            </PrivyProvider>
+            </WagmiProvider>
           </QueryClientProvider>
-        </WagmiProvider>
+        </PrivyProvider>
       </body>
     </html>,
   );
